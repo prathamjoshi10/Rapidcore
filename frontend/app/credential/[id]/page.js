@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useVault } from '../../../context/VaultContext';
-import { encryptData, decryptData } from '../../../lib/crypto';
+import { encryptData, decryptData, deriveKey } from '../../../lib/crypto';
 import api from '../../../lib/api';
 import styles from './page.module.css';
 
@@ -26,33 +26,40 @@ export default function CredentialDetailsPage() {
       router.push('/');
       return;
     }
+
+    if (!userId || !encryptionKey) {
+      return;
+    }
+
     fetchCredential();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isUnlocked]);
+  }, [id, isUnlocked, userId, encryptionKey]);
 
   const fetchCredential = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get(`/api/credentials/${id}`);
-      const data = res.data;
+      const res = await api.get(`/api/credentials/${id}`, { params: { userId } });
+      const data = res.data.credential || res.data;
 
-      // Decrypt password immediately for state
-      const { deriveKey } = await import('../../../lib/crypto');
       const cryptoKey = await deriveKey(encryptionKey, data.salt);
+      const decUsername = data.encryptedUsername && data.usernameIv
+        ? await decryptData(data.encryptedUsername, data.usernameIv, cryptoKey)
+        : '';
       const decPwd = await decryptData(data.encryptedPassword, data.iv, cryptoKey);
 
+      data.username = decUsername;
       data.password = decPwd || "ERROR: Could not decrypt";
 
       setCredential(data);
       setFormData({
         platform: data.platform,
-        websiteUrl: data.websiteUrl || '',
+        platformUrl: data.platformUrl || '',
         username: data.username || '',
         password: data.password
       });
 
-      // Optional: Tell backend we viewed this credential
-      await api.patch(`/api/credentials/${id}/track`).catch(() => {});
+      // Track usage
+      await api.patch(`/api/credentials/${id}/track`, { userId }).catch(() => {});
     } catch (err) {
       console.error(err);
       setError('Failed to load credential');
@@ -70,25 +77,24 @@ export default function CredentialDetailsPage() {
     setIsSaving(true);
 
     try {
-      // 1. Re-derive key using existing salt (we don't change salt on update)
-      const { deriveKey } = await import('../../../lib/crypto');
       const cryptoKey = await deriveKey(encryptionKey, credential.salt);
+      const { cipherHex: encryptedPassword, ivHex: passwordIv } = await encryptData(formData.password, cryptoKey);
+      const { cipherHex: encryptedUsername, ivHex: usernameIv } = await encryptData(formData.username || '', cryptoKey);
 
-      // 2. Encrypt the *new* password
-      const { cipherHex, ivHex } = await encryptData(formData.password, cryptoKey);
-
-      // 3. Send update to backend
       const payload = {
+        userId,
         platform: formData.platform,
-        websiteUrl: formData.websiteUrl,
-        username: formData.username,
-        encryptedPassword: cipherHex,
-        iv: ivHex
+        platformUrl: formData.platformUrl,
+        username: '',
+        encryptedUsername,
+        usernameIv,
+        encryptedPassword,
+        iv: passwordIv
       };
 
       await api.put(`/api/credentials/${id}`, payload);
       
-      setCredential({ ...credential, ...payload, password: formData.password });
+      setCredential({ ...credential, ...payload, username: formData.username, password: formData.password });
       setIsEditing(false);
       alert('Updated successfully!');
     } catch (err) {
@@ -103,7 +109,7 @@ export default function CredentialDetailsPage() {
     if (!window.confirm('Are you sure you want to completely delete this credential?')) return;
     
     try {
-      await api.delete(`/api/credentials/${id}`);
+      await api.delete(`/api/credentials/${id}`, { params: { userId } });
       router.push('/dashboard');
     } catch (err) {
       alert('Failed to delete');
@@ -111,7 +117,6 @@ export default function CredentialDetailsPage() {
   };
 
   if (!isUnlocked) return null;
-
   if (isLoading) return <div className={styles.loading}>Loading credential...</div>;
   if (error || !credential) return <div className={styles.error}>{error || 'Not found'}</div>;
 
@@ -149,9 +154,9 @@ export default function CredentialDetailsPage() {
             <label>URL</label>
             <input
               type="url"
-              name="websiteUrl"
+              name="platformUrl"
               className="input-field"
-              value={formData.websiteUrl}
+              value={formData.platformUrl}
               onChange={handleChange}
               disabled={!isEditing}
             />

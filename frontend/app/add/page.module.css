@@ -1,7 +1,7 @@
 .addContainer {
+  padding: 2rem 0;
   max-width: 600px;
   margin: 0 auto;
-  padding: 2rem 0;
 }
 
 .header {
@@ -11,9 +11,9 @@
 .backBtn {
   display: inline-block;
   color: var(--text-secondary);
+  font-size: 0.9rem;
   margin-bottom: 1rem;
   transition: color 0.2s;
-  font-size: 0.9rem;
 }
 
 .backBtn:hover {
@@ -21,8 +21,7 @@
 }
 
 .header h1 {
-  font-size: 1.8rem;
-  color: var(--text-primary);
+  font-size: 1.75rem;
 }
 
 .formCard {
@@ -32,7 +31,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .inputGroup {
@@ -59,28 +58,20 @@
 .genBtn {
   background: var(--surface-hover);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .genBtn:hover {
   background: rgba(108, 99, 255, 0.15);
+  color: var(--primary);
 }
 
 .actions {
-  margin-top: 1rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
+  margin-top: 0.5rem;
 }
 
 .submitBtn {
   width: 100%;
-}
-
-@media (min-width: 640px) {
-  .submitBtn {
-    width: auto;
-    min-width: 150px;
-  }
+  padding: 1rem;
+  font-size: 1rem;
 }

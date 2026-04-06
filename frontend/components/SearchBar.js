@@ -6,7 +6,6 @@ import styles from './SearchBar.module.css';
 export default function SearchBar({ onSearch }) {
   const [query, setQuery] = useState('');
 
-  // Simple debounce (300ms) without needing lodash
   const debounce = (func, wait) => {
     let timeout;
     return (...args) => {

@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateUserId, deriveKey } from '../lib/crypto';
+import { generateUserId } from '../lib/crypto';
+import api from '../lib/api';
 
 const VaultContext = createContext();
 
@@ -40,22 +41,41 @@ export function VaultProvider({ children }) {
   }, [isUnlocked]);
 
   const unlockVault = async (masterPassword) => {
-    // Determine userId hash and master key based on masterPassword
-    // Wait, to derive the encryption key, we need a salt per credential.
-    // The context will store the master password temporarily? 
-    // No, if we only store the CryptoKey, it's tied to a single salt.
-    // But since each credential has its own salt, we CANNOT store the single encryption key.
-    // We must store the master password in memory to derive keys for each credential.
-    
-    // So the context should hold the masterPassword (in memory only).
-    // Let's store a generic key material or just the password string in state.
-    // Storing string in React state is memory-only.
-    
     const currentUserId = await generateUserId(masterPassword);
-    
+
+    const res = await api.get('/api/vault', { params: { userId: currentUserId } });
+    if (!res.data?.exists) {
+      throw new Error('Vault account not found');
+    }
+
     setEncryptionKey(masterPassword); // Storing the password in memory to derive per-credential keys
     setUserId(currentUserId);
     setIsUnlocked(true);
+  };
+
+  const createVaultAccount = async (masterPassword) => {
+    const currentUserId = await generateUserId(masterPassword);
+    const res = await api.post('/api/vault', { userId: currentUserId });
+
+    setEncryptionKey(masterPassword);
+    setUserId(currentUserId);
+    setIsUnlocked(true);
+
+    return res.data?.recoveryKey || '';
+  };
+
+  const resetVaultAccount = async (recoveryKey, newMasterPassword) => {
+    const currentUserId = await generateUserId(newMasterPassword);
+    const res = await api.post('/api/vault/reset', {
+      recoveryKey,
+      newUserId: currentUserId,
+    });
+
+    setEncryptionKey(newMasterPassword);
+    setUserId(currentUserId);
+    setIsUnlocked(true);
+
+    return res.data?.recoveryKey || '';
   };
 
   const lockVault = () => {
@@ -66,7 +86,9 @@ export function VaultProvider({ children }) {
   };
 
   return (
-    <VaultContext.Provider value={{ encryptionKey, userId, isUnlocked, unlockVault, lockVault }}>
+    <VaultContext.Provider
+      value={{ encryptionKey, userId, isUnlocked, unlockVault, createVaultAccount, resetVaultAccount, lockVault }}
+    >
       {children}
     </VaultContext.Provider>
   );

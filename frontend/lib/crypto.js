@@ -1,5 +1,19 @@
-// lib/crypto.js
-// Browser-compatible encryption wrappers using Web Crypto API
+function hexToBytes(hex, label, expectedByteLength) {
+  if (!hex || typeof hex !== 'string' || !/^[0-9a-fA-F]+$/.test(hex)) {
+    throw new Error(`${label} is missing or contains invalid characters.`);
+  }
+  if (hex.length % 2 !== 0) {
+    throw new Error(`${label} has odd length.`);
+  }
+
+  const bytes = new Uint8Array(hex.match(/.{1,2}/g).map((h) => parseInt(h, 16)));
+
+  if (expectedByteLength && bytes.length !== expectedByteLength) {
+    throw new Error(`${label} must be ${expectedByteLength} bytes.`);
+  }
+
+  return bytes;
+}
 
 export async function generateSalt() {
   const salt = window.crypto.getRandomValues(new Uint8Array(16));
@@ -7,43 +21,30 @@ export async function generateSalt() {
 }
 
 export async function generateUserId(masterPassword) {
+  if (!masterPassword || typeof masterPassword !== 'string') {
+    throw new Error('Master password is required.');
+  }
+
   const enc = new TextEncoder();
-  const keyMaterial = await window.crypto.subtle.importKey(
-    'raw',
-    enc.encode(masterPassword),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits']
-  );
-  
-  // Deterministic salt for userId derivation
-  const salt = enc.encode("securevault-userid-salt");
-  
-  const hashBuffer = await window.crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
-      hash: 'SHA-256'
-    },
-    keyMaterial,
-    256
-  );
-  
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashBuffer = await window.crypto.subtle.digest("SHA-256", enc.encode(masterPassword));
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export async function deriveKey(masterPassword, saltHex) {
+  if (!masterPassword || typeof masterPassword !== 'string') {
+    throw new Error('Key derivation failed: master password is required.');
+  }
+
   const enc = new TextEncoder();
-  const saltBuffer = new Uint8Array(saltHex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
-  
+  const saltBuffer = hexToBytes(saltHex, 'saltHex', 16);
+
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
     enc.encode(masterPassword),
-    { name: 'PBKDF2' },
+    'PBKDF2',
     false,
-    ['deriveBits', 'deriveKey']
+    ['deriveKey']
   );
 
   return window.crypto.subtle.deriveKey(
@@ -54,47 +55,44 @@ export async function deriveKey(masterPassword, saltHex) {
       hash: 'SHA-256'
     },
     keyMaterial,
-    { name: 'AES-CBC', length: 256 },
+    { name: 'AES-GCM', length: 256 },
     false,
     ['encrypt', 'decrypt']
   );
 }
 
 export async function encryptData(plaintext, cryptoKey) {
-  const iv = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const enc = new TextEncoder();
-  
+
   const ciphertextBuffer = await window.crypto.subtle.encrypt(
-    { name: 'AES-CBC', iv: iv },
+    { name: 'AES-GCM', iv: iv },
     cryptoKey,
     enc.encode(plaintext)
   );
 
   const cipherHex = Array.from(new Uint8Array(ciphertextBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-    
+    .map(b => b.toString(16).padStart(2, '0')).join('');
   const ivHex = Array.from(iv)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map(b => b.toString(16).padStart(2, '0')).join('');
 
   return { cipherHex, ivHex };
 }
 
 export async function decryptData(cipherHex, ivHex, cryptoKey) {
+  const cipherBuffer = hexToBytes(cipherHex, 'cipherHex');
+  const ivBuffer = hexToBytes(ivHex, 'ivHex', 12);
+
   try {
-    const cipherBuffer = new Uint8Array(cipherHex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
-    const ivBuffer = new Uint8Array(ivHex.match(/[\da-f]{2}/gi).map(h => parseInt(h, 16)));
-    
     const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: 'AES-CBC', iv: ivBuffer },
+      { name: 'AES-GCM', iv: ivBuffer },
       cryptoKey,
       cipherBuffer
     );
 
     return new TextDecoder().decode(decryptedBuffer);
-  } catch (error) {
-    console.error("Decryption failed. Wrong password?");
-    return null;
+  } catch {
+    console.error('Decryption failed: Incorrect master password or corrupted data.');
+    throw new Error('Decryption failed: Incorrect master password or corrupted data.');
   }
 }

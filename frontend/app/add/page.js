@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useVault } from '../../context/VaultContext';
-import { encryptData, generateSalt } from '../../lib/crypto';
+import { encryptData, generateSalt, deriveKey } from '../../lib/crypto';
 import api from '../../lib/api';
 import styles from './page.module.css';
 
 export default function AddCredentialPage() {
   const [formData, setFormData] = useState({
     platform: '',
-    websiteUrl: '',
+    platformUrl: '',
     username: '',
     password: ''
   });
@@ -48,21 +48,23 @@ export default function AddCredentialPage() {
       const salt = await generateSalt();
       
       // 2. Derive key from master password using this specific salt
-      const { deriveKey } = await import('../../lib/crypto');
       const cryptoKey = await deriveKey(encryptionKey, salt);
       
-      // 3. Encrypt the password
-      const { cipherHex, ivHex } = await encryptData(formData.password, cryptoKey);
+      // 3. Encrypt password and username
+      const { cipherHex: encryptedPassword, ivHex: passwordIv } = await encryptData(formData.password, cryptoKey);
+      const { cipherHex: encryptedUsername, ivHex: usernameIv } = await encryptData(formData.username || '', cryptoKey);
       
       // 4. Send to backend
       const payload = {
         userId,
         platform: formData.platform,
-        websiteUrl: formData.websiteUrl,
-        username: formData.username,
-        encryptedPassword: cipherHex,
-        iv: ivHex,
-        salt: salt
+        platformUrl: formData.platformUrl,
+        username: '',
+        encryptedPassword,
+        iv: passwordIv,
+        encryptedUsername,
+        usernameIv,
+        salt
       };
 
       await api.post('/api/credentials', payload);
@@ -101,14 +103,14 @@ export default function AddCredentialPage() {
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="websiteUrl">Website URL</label>
+            <label htmlFor="platformUrl">Website URL</label>
             <input
-              id="websiteUrl"
-              name="websiteUrl"
+              id="platformUrl"
+              name="platformUrl"
               className="input-field"
               type="url"
               placeholder="e.g. https://github.com"
-              value={formData.websiteUrl}
+              value={formData.platformUrl}
               onChange={handleChange}
             />
           </div>

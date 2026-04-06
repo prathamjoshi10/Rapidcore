@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/components/Navbar.module.css"],"sourcesContent":[".navbar {\n  position: sticky;\n  top: 0;\n  z-index: 50;\n  background: rgba(18, 18, 26, 0.85);\n  backdrop-filter: blur(12px);\n  border-bottom: 1px solid var(--border);\n  padding: 1rem 0;\n}\n\n.container {\n  max-width: 1200px;\n  margin: 0 auto;\n  padding: 0 1rem;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}\n\n.brand {\n  font-size: 1.25rem;\n  font-weight: 700;\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  transition: opacity 0.2s;\n}\n\n.brand:hover {\n  opacity: 0.8;\n}\n\n.icon {\n  font-size: 1.5rem;\n}\n\n.navLinks {\n  display: flex;\n  align-items: center;\n  gap: 1.5rem;\n}\n\n.link {\n  font-weight: 500;\n  color: var(--text-secondary);\n  transition: color 0.2s;\n}\n\n.link:hover {\n  color: var(--text-primary);\n}\n\n.lockBtn {\n  font-size: 0.9rem;\n  padding: 0.5rem 1rem;\n}\n"],"names":[],"mappings":"AAAA;;;;;;;;;;;AAUA;;;;;;;;;AASA;;;;;;;;;AASA;;;;AAIA;;;;AAIA;;;;;;AAMA;;;;;;AAMA;;;;AAIA"}}]
+}
