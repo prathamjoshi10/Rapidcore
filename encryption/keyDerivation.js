@@ -14,8 +14,23 @@ export async function generateUserId(masterPassword) {
         .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Derive an AES-256-CBC key from master password + salt using PBKDF2
+/**
+ * Derive an AES-256-CBC key from master password + salt using PBKDF2.
+ *
+ * @param {string} masterPassword - The user's master password
+ * @param {string} saltHex        - Hex-encoded salt (32 hex chars = 16 bytes)
+ * @returns {Promise<CryptoKey>}  - Non-extractable AES-CBC key
+ * @throws {Error} If saltHex is missing or contains invalid characters
+ */
 export async function deriveKey(masterPassword, saltHex) {
+    // --- Input validation (Finding #2) ---
+    if (!saltHex || typeof saltHex !== 'string') {
+        throw new Error('Key derivation failed: saltHex is missing or not a string.');
+    }
+    if (!/^[0-9a-fA-F]+$/.test(saltHex)) {
+        throw new Error('Key derivation failed: saltHex contains non-hex characters.');
+    }
+
     const enc = new TextEncoder();
     const keyMaterial = await window.crypto.subtle.importKey(
         "raw",
@@ -24,17 +39,19 @@ export async function deriveKey(masterPassword, saltHex) {
         false,
         ["deriveKey"]
     );
-    // Convert hex salt to Uint8Array
+
+    // Safe hex → Uint8Array (validated above, so .match() will never be null)
     const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
     return window.crypto.subtle.deriveKey(
         {
             name: "PBKDF2",
             salt: salt,
-            iterations: 100000, 
+            iterations: 100000,
             hash: "SHA-256"
         },
         keyMaterial,
-        { name: "AES-CBC", length: 256 }, 
+        { name: "AES-CBC", length: 256 },
         false,
         ["encrypt", "decrypt"]
     );

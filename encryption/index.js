@@ -5,19 +5,24 @@
  * - AES-256-CBC for encryption/decryption
  * - PBKDF2 (100k iterations, SHA-256) for key derivation
  * - All crypto runs client-side; server never sees plaintext
+ *
+ * Exports:
+ *   generateSalt()   - 16-byte random salt (hex) from keyDerivation.js
+ *   generateUserId() - SHA-256 hash of master password from keyDerivation.js
+ *   deriveKey()       - PBKDF2 key derivation from keyDerivation.js
+ *   encryptData()     - AES-CBC encrypt from encrypt.js
+ *   decryptData()     - AES-CBC decrypt from decrypt.js
+ *   encryptCredential() - Encrypt full credential object (below)
+ *   decryptCredential() - Decrypt full credential object (below)
  */
 
 export { deriveKey, generateSalt, generateUserId } from './keyDerivation.js';
 export { encryptData } from './encrypt.js';
 export { decryptData } from './decrypt.js';
 
-// Generate a cryptographically random 16-byte salt (returned as hex).
-// This salt should be stored in localStorage (or sent to backend alongside
-// encrypted data) so the same key can be re-derived on future logins.
-
 /**
  * Encrypt a full credential object (platform, username, password, url).
- * Only username and password are encrypted - platform & url stay plaintext
+ * Only username and password are encrypted — platform & url stay plaintext
  * for search/display purposes.
  *
  * @param {Object} credential - { platform, url, username, password }
@@ -25,13 +30,13 @@ export { decryptData } from './decrypt.js';
  * @returns {Object} - { platform, url, encryptedUsername, usernameIv, encryptedPassword, passwordIv }
  */
 export async function encryptCredential(credential, cryptoKey) {
-    const { encryptData: encrypt } = await import('./encrypt.js');
+    const { encryptData } = await import('./encrypt.js');
 
     const { cipherHex: encryptedPassword, ivHex: passwordIv } =
-        await encrypt(credential.password, cryptoKey);
+        await encryptData(credential.password, cryptoKey);
 
     const { cipherHex: encryptedUsername, ivHex: usernameIv } =
-        await encrypt(credential.username, cryptoKey);
+        await encryptData(credential.username, cryptoKey);
 
     return {
         platform: credential.platform,
@@ -51,10 +56,10 @@ export async function encryptCredential(credential, cryptoKey) {
  * @returns {Object} - { platform, url, username, password }
  */
 export async function decryptCredential(encrypted, cryptoKey) {
-    const { decryptData: decrypt } = await import('./decrypt.js');
+    const { decryptData } = await import('./decrypt.js');
 
-    const username = await decrypt(encrypted.encryptedUsername, encrypted.usernameIv, cryptoKey);
-    const password = await decrypt(encrypted.encryptedPassword, encrypted.passwordIv, cryptoKey);
+    const username = await decryptData(encrypted.encryptedUsername, encrypted.usernameIv, cryptoKey);
+    const password = await decryptData(encrypted.encryptedPassword, encrypted.passwordIv, cryptoKey);
 
     return {
         platform: encrypted.platform,
