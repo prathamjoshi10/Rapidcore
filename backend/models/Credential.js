@@ -11,6 +11,7 @@ const credentialSchema = new mongoose.Schema(
       type: String,
       required: [true, "Platform name is required"],
       trim: true,
+      index: true,
     },
     platformUrl: {
       type: String,

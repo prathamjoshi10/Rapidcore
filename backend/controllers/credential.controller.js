@@ -42,7 +42,7 @@ exports.getAllCredentials = async (req, res, next) => {
       return res.status(400).json({ error: "userId query parameter is required" });
     }
 
-    const credentials = await Credential.find({ userId }).sort({ updatedAt: -1 });
+    const credentials = await Credential.find({ userId }).select("-__v").sort({ updatedAt: -1 });
 
     res.json({
       count: credentials.length,
@@ -57,7 +57,7 @@ exports.getAllCredentials = async (req, res, next) => {
 // @route   GET /api/credentials/:id
 exports.getCredentialById = async (req, res, next) => {
   try {
-    const credential = await Credential.findById(req.params.id);
+    const credential = await Credential.findById(req.params.id).select("-__v");
 
     if (!credential) {
       return res.status(404).json({ error: "Credential not found" });
@@ -75,7 +75,7 @@ exports.updateCredential = async (req, res, next) => {
   try {
     const { platform, platformUrl, username, encryptedPassword, iv, notes } = req.body;
 
-    const credential = await Credential.findById(req.params.id);
+    const credential = await Credential.findById(req.params.id).select("-__v");
 
     if (!credential) {
       return res.status(404).json({ error: "Credential not found" });
@@ -133,7 +133,7 @@ exports.searchCredentials = async (req, res, next) => {
     const credentials = await Credential.find({
       userId,
       platform: { $regex: q, $options: "i" },
-    }).sort({ updatedAt: -1 });
+    }).select("-__v").sort({ updatedAt: -1 });
 
     res.json({
       count: credentials.length,
