@@ -5,16 +5,54 @@
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
-.header h1 {
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   font-size: 2rem;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
 }
 
-.header p {
+.titleIcon,
+.statIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.1rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(108, 99, 255, 0.14);
+  color: #a6a2ff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+}
+
+.subtitle {
   color: var(--text-secondary);
+  margin: 0;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 1.15rem;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), #8d7bff);
+  box-shadow: 0 16px 40px rgba(108, 99, 255, 0.22);
+}
+
+.addIcon {
+  font-size: 1.2rem;
 }
 
 .error {
@@ -26,11 +64,144 @@
   margin-bottom: 1.5rem;
 }
 
+.quickUnlockBanner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1.2rem 1.25rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at right top, rgba(108, 99, 255, 0.2), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+}
+
+.quickUnlockBanner h2 {
+  margin: 0.15rem 0 0.45rem;
+  font-size: 1.15rem;
+}
+
+.quickUnlockBanner p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.quickUnlockEyebrow {
+  color: #8ea2ff !important;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+}
+
+.pinActionBtn {
+  padding: 0.85rem 1rem;
+  min-width: 120px;
+  border-radius: 14px;
+  background: rgba(108, 99, 255, 0.16);
+  color: #fff;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.statCard {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.statValue {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin: 1.6rem 0 1rem;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.sortSelect {
+  min-width: 190px;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.viewToggle {
+  display: inline-flex;
+  gap: 0.45rem;
+  padding: 0.3rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.viewBtn {
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.viewBtnActive {
+  background: rgba(108, 99, 255, 0.16);
+  color: #fff;
+}
+
+.searchMeta {
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
 .loading {
   text-align: center;
   padding: 3rem;
   color: var(--text-secondary);
   font-size: 1.1rem;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary);
+  animation: spin 0.9s linear infinite;
 }
 
 .fabBtn {
@@ -55,4 +226,39 @@
 .fabBtn:hover {
   background: var(--primary-hover);
   transform: scale(1.1);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar,
+  .quickUnlockBanner,
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sortSelect {
+    min-width: 0;
+    width: 100%;
+  }
 }

@@ -1,20 +1,31 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useVault } from '../../context/VaultContext';
+import { useRouter } from 'next/navigation';
+import PinModal from '../../components/PinModal';
 import SearchBar from '../../components/SearchBar';
 import VaultList from '../../components/VaultList';
-import api from '../../lib/api';
+import { useVault } from '../../context/VaultContext';
 import { decryptData, deriveKey } from '../../lib/crypto';
+import api from '../../lib/api';
+import {
+  MAX_PIN_ATTEMPTS,
+  clearStoredPin,
+  getPinLockUntil,
+  getStoredPinHash,
+  hashPin,
+  isValidPin,
+  setPinLock,
+  storePinHash,
+} from '../../lib/pin';
 import styles from './page.module.css';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First' },
   { value: 'oldest', label: 'Oldest First' },
-  { value: 'az', label: 'A → Z' },
-  { value: 'za', label: 'Z → A' },
+  { value: 'az', label: 'A to Z' },
+  { value: 'za', label: 'Z to A' },
   { value: 'mostUsed', label: 'Most Used' },
   { value: 'recentlyUsed', label: 'Recently Used' },
 ];
@@ -27,6 +38,13 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pinMode, setPinMode] = useState('verify');
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pinError, setPinError] = useState('');
+  const [pinAttempts, setPinAttempts] = useState(0);
+  const [pinLockUntil, setPinLockUntil] = useState(0);
+  const [pinHash, setPinHash] = useState('');
+  const [pendingPinResolve, setPendingPinResolve] = useState(null);
 
   const { isUnlocked, userId, encryptionKey } = useVault();
   const router = useRouter();
@@ -36,10 +54,24 @@ export default function DashboardPage() {
       router.push('/');
       return;
     }
+
     if (!userId || !encryptionKey) return;
-    fetchCredentials();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUnlocked, userId, encryptionKey]);
+    void fetchCredentials();
+  }, [isUnlocked, userId, encryptionKey, router]);
+
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    const nextHash = getStoredPinHash();
+    const nextLockUntil = getPinLockUntil();
+    setPinHash(nextHash);
+    setPinLockUntil(nextLockUntil);
+
+    if (!nextHash) {
+      setPinMode('set');
+      setPinModalOpen(true);
+    }
+  }, [isUnlocked]);
 
   const fetchCredentials = async () => {
     try {
@@ -50,6 +82,7 @@ export default function DashboardPage() {
           if (!credential.encryptedUsername || !credential.usernameIv) {
             return credential;
           }
+
           try {
             const key = await deriveKey(encryptionKey, credential.salt);
             const username = await decryptData(credential.encryptedUsername, credential.usernameIv, key);
@@ -60,6 +93,7 @@ export default function DashboardPage() {
           }
         })
       );
+
       setCredentials(creds);
       setFilteredCredentials(creds);
     } catch (err) {
@@ -72,24 +106,22 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     if (!credentials.length) return null;
-    const totalPasswords = credentials.length;
-    const totalUsage = credentials.reduce((sum, c) => sum + (c.usageCount || 0), 0);
-    const platforms = [...new Set(credentials.map(c => c.platform))].length;
 
-    const lastActivity = credentials.reduce((latest, c) => {
-      const d = new Date(c.updatedAt || c.createdAt);
-      return d > latest ? d : latest;
+    const totalPasswords = credentials.length;
+    const totalUsage = credentials.reduce((sum, credential) => sum + (credential.usageCount || 0), 0);
+    const platforms = [...new Set(credentials.map((credential) => credential.platform))].length;
+
+    const lastActivity = credentials.reduce((latest, credential) => {
+      const nextDate = new Date(credential.updatedAt || credential.createdAt);
+      return nextDate > latest ? nextDate : latest;
     }, new Date(0));
 
-    const mostUsed = credentials.reduce((top, c) =>
-      (c.usageCount || 0) > (top?.usageCount || 0) ? c : top
-    , credentials[0]);
-
-    return { totalPasswords, totalUsage, platforms, lastActivity, mostUsed };
+    return { totalPasswords, totalUsage, platforms, lastActivity };
   }, [credentials]);
 
   const sortedCredentials = useMemo(() => {
     const list = [...filteredCredentials];
+
     switch (sortBy) {
       case 'newest':
         return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -110,29 +142,33 @@ export default function DashboardPage() {
 
   const handleSearch = (query) => {
     setSearchQuery(query);
+
     if (!query) {
       setFilteredCredentials(credentials);
       return;
     }
-    const lowerQ = query.toLowerCase();
+
+    const lowerQuery = query.toLowerCase();
     setFilteredCredentials(
-      credentials.filter(c =>
-        c.platform.toLowerCase().includes(lowerQ) ||
-        (c.username && c.username.toLowerCase().includes(lowerQ))
+      credentials.filter(
+        (credential) =>
+          credential.platform.toLowerCase().includes(lowerQuery) ||
+          (credential.username && credential.username.toLowerCase().includes(lowerQuery))
       )
     );
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this credential?')) return;
+
     try {
       await api.delete(`/api/credentials/${id}`, { params: { userId } });
-      const updated = credentials.filter(c => c._id !== id);
+      const updated = credentials.filter((credential) => credential._id !== id);
       setCredentials(updated);
-      setFilteredCredentials(filteredCredentials.filter(c => c._id !== id));
+      setFilteredCredentials(filteredCredentials.filter((credential) => credential._id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
-      alert('Failed to delete credential.');
+      window.alert('Failed to delete credential.');
     }
   };
 
@@ -147,6 +183,86 @@ export default function DashboardPage() {
     return `${days}d ago`;
   };
 
+  const resolvePendingPin = (result) => {
+    if (pendingPinResolve) {
+      pendingPinResolve(result);
+      setPendingPinResolve(null);
+    }
+  };
+
+  const requestPinUnlock = () =>
+    new Promise((resolve) => {
+      const nextHash = getStoredPinHash();
+      setPinHash(nextHash);
+      setPinMode(nextHash ? 'verify' : 'set');
+      setPinError('');
+      setPendingPinResolve(() => resolve);
+      setPinModalOpen(true);
+    });
+
+  const handleClosePinModal = () => {
+    if (pinMode === 'set' && !pinHash) {
+      return;
+    }
+
+    setPinModalOpen(false);
+    setPinError('');
+    resolvePendingPin(false);
+  };
+
+  const handlePinConfirm = async (pin) => {
+    if (!isValidPin(pin)) {
+      setPinError('PIN must be 4-6 digits and numeric only.');
+      return;
+    }
+
+    if (pinMode === 'set') {
+      const nextPinHash = await hashPin(pin);
+      storePinHash(nextPinHash);
+      setPinHash(nextPinHash);
+      setPinAttempts(0);
+      setPinLockUntil(0);
+      setPinError('');
+      setPinModalOpen(false);
+      resolvePendingPin(true);
+      return;
+    }
+
+    const currentLockUntil = getPinLockUntil();
+    if (currentLockUntil) {
+      setPinLockUntil(currentLockUntil);
+      return;
+    }
+
+    const nextPinHash = await hashPin(pin);
+    if (nextPinHash === getStoredPinHash()) {
+      setPinAttempts(0);
+      setPinError('');
+      setPinModalOpen(false);
+      resolvePendingPin(true);
+      return;
+    }
+
+    const nextAttempts = pinAttempts + 1;
+    setPinAttempts(nextAttempts);
+    setPinError('Incorrect PIN');
+
+    if (nextAttempts >= MAX_PIN_ATTEMPTS) {
+      const lockUntil = setPinLock();
+      setPinLockUntil(lockUntil);
+      setPinAttempts(0);
+    }
+  };
+
+  const handleForgotPin = () => {
+    clearStoredPin();
+    setPinHash('');
+    setPinAttempts(0);
+    setPinError('');
+    setPinLockUntil(0);
+    setPinMode('set');
+  };
+
   if (!isUnlocked) return null;
 
   return (
@@ -154,10 +270,10 @@ export default function DashboardPage() {
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>
-            <span className={styles.titleIcon}>🛡️</span>
+            <span className={styles.titleIcon}>Vault</span>
             My Vault
           </h1>
-          <p className={styles.subtitle}>Manage your securely encrypted credentials</p>
+          <p className={styles.subtitle}>Manage your securely encrypted credentials.</p>
         </div>
         <Link href="/add" className={styles.addBtn}>
           <span className={styles.addIcon}>+</span>
@@ -167,31 +283,52 @@ export default function DashboardPage() {
 
       {error && <div className={styles.error}>{error}</div>}
 
+      <div className={styles.quickUnlockBanner}>
+        <div>
+          <p className={styles.quickUnlockEyebrow}>Quick Unlock</p>
+          <h2>{pinHash ? 'PIN shield is active' : 'Set your PIN shield'}</h2>
+          <p>
+            Use a 4-6 digit PIN to reveal and copy credentials faster without replacing your master password.
+          </p>
+        </div>
+        <button
+          type="button"
+          className={styles.pinActionBtn}
+          onClick={() => {
+            setPinMode('set');
+            setPinError('');
+            setPinModalOpen(true);
+          }}
+        >
+          {pinHash ? 'Reset PIN' : 'Set PIN'}
+        </button>
+      </div>
+
       {stats && !isLoading && (
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>🔑</div>
+            <div className={styles.statIcon}>Keys</div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>{stats.totalPasswords}</span>
               <span className={styles.statLabel}>Total Passwords</span>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>🌐</div>
+            <div className={styles.statIcon}>Apps</div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>{stats.platforms}</span>
               <span className={styles.statLabel}>Platforms</span>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>📊</div>
+            <div className={styles.statIcon}>Use</div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>{stats.totalUsage}</span>
               <span className={styles.statLabel}>Total Accesses</span>
             </div>
           </div>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>⏱️</div>
+            <div className={styles.statIcon}>Last</div>
             <div className={styles.statInfo}>
               <span className={styles.statValue}>{formatTimeAgo(stats.lastActivity)}</span>
               <span className={styles.statLabel}>Last Activity</span>
@@ -203,29 +340,27 @@ export default function DashboardPage() {
       <div className={styles.toolbar}>
         <SearchBar onSearch={handleSearch} />
         <div className={styles.controls}>
-          <select
-            className={styles.sortSelect}
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-          >
-            {SORT_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <select className={styles.sortSelect} value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
           <div className={styles.viewToggle}>
             <button
+              type="button"
               className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.viewBtnActive : ''}`}
               onClick={() => setViewMode('grid')}
-              title="Grid View"
             >
-              ▦
+              Grid
             </button>
             <button
+              type="button"
               className={`${styles.viewBtn} ${viewMode === 'list' ? styles.viewBtnActive : ''}`}
               onClick={() => setViewMode('list')}
-              title="List View"
             >
-              ☰
+              List
             </button>
           </div>
         </div>
@@ -233,7 +368,7 @@ export default function DashboardPage() {
 
       {searchQuery && (
         <div className={styles.searchMeta}>
-          Showing {sortedCredentials.length} result{sortedCredentials.length !== 1 ? 's' : ''} for &ldquo;{searchQuery}&rdquo;
+          Showing {sortedCredentials.length} result{sortedCredentials.length !== 1 ? 's' : ''} for "{searchQuery}"
         </div>
       )}
 
@@ -247,12 +382,33 @@ export default function DashboardPage() {
           credentials={sortedCredentials}
           onDelete={handleDelete}
           viewMode={viewMode}
+          requestPinUnlock={requestPinUnlock}
+          pinEnabled={Boolean(pinHash)}
         />
       )}
 
       <Link href="/add" className={styles.fabBtn} title="Add Credential">
         +
       </Link>
+
+      <PinModal
+        isOpen={pinModalOpen}
+        mode={pinMode}
+        title={pinMode === 'set' ? 'Set your quick unlock PIN' : 'Enter PIN to view password'}
+        description={
+          pinMode === 'set'
+            ? 'Create a 4-6 digit PIN for fast credential viewing. Your PIN is hashed before it is stored in this browser.'
+            : 'This PIN only controls dashboard visibility. Your master password still handles encryption and decryption.'
+        }
+        confirmLabel={pinMode === 'set' ? 'Save PIN' : 'Unlock'}
+        error={pinError}
+        lockUntil={pinLockUntil}
+        onClose={handleClosePinModal}
+        onConfirm={handlePinConfirm}
+        allowClose={pinMode !== 'set' || Boolean(pinHash)}
+        showForgot={pinMode === 'verify'}
+        onForgotPin={handleForgotPin}
+      />
     </div>
   );
 }
