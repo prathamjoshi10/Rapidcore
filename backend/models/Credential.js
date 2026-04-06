@@ -31,9 +31,21 @@ const credentialSchema = new mongoose.Schema(
       type: String,
       required: [true, "Initialization vector (IV) is required"],
     },
+    salt: {
+      type: String,
+      required: [true, "Salt is required for key derivation"],
+    },
     notes: {
       type: String,
       default: "",
+    },
+    lastUsed: {
+      type: Date,
+      default: null,
+    },
+    usageCount: {
+      type: Number,
+      default: 0,
     },
   },
   {
