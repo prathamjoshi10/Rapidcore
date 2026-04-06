@@ -45,6 +45,11 @@ export default function DashboardPage() {
   const [pinLockUntil, setPinLockUntil] = useState(0);
   const [pinHash, setPinHash] = useState('');
   const [pendingPinResolve, setPendingPinResolve] = useState(null);
+  const [canResetPin, setCanResetPin] = useState(false);
+  const [recoveryKey, setRecoveryKey] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
+  const [isVerifyingRecovery, setIsVerifyingRecovery] = useState(false);
+  const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
 
   const { isUnlocked, userId, encryptionKey } = useVault();
   const router = useRouter();
@@ -254,13 +259,29 @@ export default function DashboardPage() {
     }
   };
 
-  const handleForgotPin = () => {
-    clearStoredPin();
-    setPinHash('');
-    setPinAttempts(0);
-    setPinError('');
-    setPinLockUntil(0);
-    setPinMode('set');
+  const handleVerifyRecoveryKey = async (event) => {
+    event.preventDefault();
+    if (!recoveryKey.trim()) {
+      setRecoveryError('Recovery key is required.');
+      return;
+    }
+
+    try {
+      setIsVerifyingRecovery(true);
+      setRecoveryError('');
+      await api.post('/api/vault/verify-recovery', {
+        recoveryKey: recoveryKey.trim(),
+        userId,
+      });
+      setCanResetPin(true);
+      setRecoveryModalOpen(false);
+      setRecoveryKey('');
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err?.response?.data?.error || 'Recovery key verification failed.');
+    } finally {
+      setIsVerifyingRecovery(false);
+    }
   };
 
   if (!isUnlocked) return null;
@@ -284,24 +305,55 @@ export default function DashboardPage() {
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.quickUnlockBanner}>
-        <div>
+        <div className={styles.quickUnlockCopy}>
           <p className={styles.quickUnlockEyebrow}>Quick Unlock</p>
           <h2>{pinHash ? 'PIN shield is active' : 'Set your PIN shield'}</h2>
           <p>
             Use a 4-6 digit PIN to reveal and copy credentials faster without replacing your master password.
           </p>
         </div>
-        <button
-          type="button"
-          className={styles.pinActionBtn}
-          onClick={() => {
-            setPinMode('set');
-            setPinError('');
-            setPinModalOpen(true);
-          }}
-        >
-          {pinHash ? 'Reset PIN' : 'Set PIN'}
-        </button>
+        <div className={styles.quickUnlockActions}>
+          {!pinHash && (
+            <button
+              type="button"
+              className={styles.pinActionBtn}
+              onClick={() => {
+                setPinMode('set');
+                setPinError('');
+                setPinModalOpen(true);
+              }}
+            >
+              Set PIN
+            </button>
+          )}
+
+          {pinHash && !canResetPin && (
+            <button
+              type="button"
+              className={styles.pinGhostBtn}
+              onClick={() => {
+                setRecoveryError('');
+                setRecoveryModalOpen(true);
+              }}
+            >
+              Enter Recovery Key
+            </button>
+          )}
+
+          {pinHash && canResetPin && (
+            <button
+              type="button"
+              className={styles.pinActionBtn}
+              onClick={() => {
+                setPinMode('set');
+                setPinError('');
+                setPinModalOpen(true);
+              }}
+            >
+              Reset PIN
+            </button>
+          )}
+        </div>
       </div>
 
       {stats && !isLoading && (
@@ -406,9 +458,54 @@ export default function DashboardPage() {
         onClose={handleClosePinModal}
         onConfirm={handlePinConfirm}
         allowClose={pinMode !== 'set' || Boolean(pinHash)}
-        showForgot={pinMode === 'verify'}
-        onForgotPin={handleForgotPin}
+        showForgot={false}
       />
+
+      {recoveryModalOpen && (
+        <div className={styles.recoveryOverlay} role="presentation">
+          <div className={styles.recoveryBackdrop} onClick={() => setRecoveryModalOpen(false)} />
+          <div className={styles.recoveryModal} role="dialog" aria-modal="true" aria-labelledby="recovery-modal-title">
+            <button
+              type="button"
+              className={styles.recoveryClose}
+              onClick={() => setRecoveryModalOpen(false)}
+              aria-label="Close recovery verification modal"
+            >
+              x
+            </button>
+
+            <p className={styles.quickUnlockEyebrow}>Recovery Gate</p>
+            <h3 id="recovery-modal-title" className={styles.recoveryTitle}>
+              Verify recovery key to reset PIN
+            </h3>
+            <p className={styles.recoveryText}>
+              Enter the recovery key generated when this vault account was created. Reset PIN appears only after this verification.
+            </p>
+
+            <form onSubmit={handleVerifyRecoveryKey} className={styles.recoveryForm}>
+              <input
+                type="text"
+                className={`input-field ${styles.recoveryInput}`}
+                placeholder="Paste recovery key"
+                value={recoveryKey}
+                onChange={(event) => setRecoveryKey(event.target.value)}
+                autoFocus
+              />
+
+              {recoveryError && <div className={styles.recoveryError}>{recoveryError}</div>}
+
+              <div className={styles.recoveryActions}>
+                <button type="button" className={styles.pinGhostBtn} onClick={() => setRecoveryModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.pinActionBtn} disabled={isVerifyingRecovery}>
+                  {isVerifyingRecovery ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

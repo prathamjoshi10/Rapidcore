@@ -57,6 +57,27 @@ exports.createVaultAccount = async (req, res, next) => {
   }
 };
 
+exports.verifyRecoveryKey = async (req, res, next) => {
+  try {
+    const { recoveryKey, userId } = req.body;
+
+    if (!recoveryKey || !userId) {
+      return res.status(400).json({ error: "recoveryKey and userId are required" });
+    }
+
+    const recoveryKeyHash = hashRecoveryKey(recoveryKey);
+    const account = await VaultAccount.findOne({ userId, recoveryKeyHash }).lean();
+
+    if (!account) {
+      return res.status(404).json({ error: "Invalid recovery key" });
+    }
+
+    res.json({ valid: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.resetVaultAccount = async (req, res, next) => {
   try {
     const { recoveryKey, newUserId } = req.body;
