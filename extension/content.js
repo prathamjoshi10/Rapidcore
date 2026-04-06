@@ -1,88 +1,221 @@
-console.log("🔒 SecureVault Content Script is active!");
+/**
+ * SecureVault — Content Script
+ * =============================
+ * Handles: autofill injection, form field detection, password generation,
+ * and communication with the popup.
+ * 
+ * Injected into all pages via manifest content_scripts.
+ */
 
-// --- 1. UTILITY FUNCTIONS ---
+console.log("🔒 SecureVault Content Script active");
 
-// Generates a 16-character strong password
-function generateStrongPassword() {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
-    let password = "";
-    for (let i = 0; i < 16; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+// ═══════════════════════════════════════════════════════════════════
+// 1. MESSAGE LISTENER — Receive autofill commands from popup
+// ═══════════════════════════════════════════════════════════════════
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "AUTOFILL") {
+        const result = performAutofill(message.username, message.password);
+        sendResponse(result);
     }
-    return password;
+    return true;
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. AUTOFILL LOGIC
+// ═══════════════════════════════════════════════════════════════════
+
+function performAutofill(username, password) {
+    const usernameField = findUsernameField();
+    const passwordField = findPasswordField();
+
+    let filled = false;
+
+    if (usernameField && username) {
+        setFieldValue(usernameField, username);
+        filled = true;
+    }
+
+    if (passwordField && password) {
+        setFieldValue(passwordField, password);
+        filled = true;
+    }
+
+    if (filled) {
+        showAutofillNotification("✅ SecureVault: Credentials filled!");
+        return { ok: true };
+    }
+
+    return { ok: false, error: "No login fields detected" };
 }
 
-// --- 2. CORE LOGIC ---
+// ─── Smart Field Detection ─────────────────────────────────────────
 
-async function injectRecommendButtons() {
-    // Check extension state from local storage
-    chrome.storage.local.get(['extensionActive', 'isLocked'], async (data) => {
-        const passwordInputs = document.querySelectorAll('input[type="password"]');
+function findUsernameField() {
+    // Priority order for username detection
+    const selectors = [
+        'input[autocomplete="username"]',
+        'input[autocomplete="email"]',
+        'input[name="email"]',
+        'input[name="username"]',
+        'input[name="user"]',
+        'input[name="login"]',
+        'input[name="loginId"]',
+        'input[id="email"]',
+        'input[id="username"]',
+        'input[id="login"]',
+        'input[type="email"]',
+        'input[name*="email" i]',
+        'input[name*="user" i]',
+        'input[name*="login" i]',
+        'input[placeholder*="email" i]',
+        'input[placeholder*="username" i]',
+        'input[placeholder*="user" i]',
+        'input[aria-label*="email" i]',
+        'input[aria-label*="username" i]'
+    ];
 
-        // IF DISABLED OR LOCKED: Remove buttons and stop
-        if (data.extensionActive === false || data.isLocked === true || data.isLocked === undefined) {
-            document.querySelectorAll('.sv-btn').forEach(btn => btn.remove());
+    for (const selector of selectors) {
+        const field = document.querySelector(selector);
+        if (field && isVisible(field)) return field;
+    }
+
+    // Fallback: find a visible text input near a password field
+    const passwordField = findPasswordField();
+    if (passwordField) {
+        const form = passwordField.closest("form");
+        if (form) {
+            const textInputs = form.querySelectorAll('input[type="text"], input:not([type])');
+            for (const input of textInputs) {
+                if (isVisible(input)) return input;
+            }
+        }
+    }
+
+    // Last resort: any visible text/email input on page
+    const allInputs = document.querySelectorAll('input[type="text"], input[type="email"], input:not([type])');
+    for (const input of allInputs) {
+        if (isVisible(input) && !input.readOnly && !input.disabled) return input;
+    }
+
+    return null;
+}
+
+function findPasswordField() {
+    const selectors = [
+        'input[autocomplete="current-password"]',
+        'input[type="password"]',
+        'input[name="password"]',
+        'input[name="pass"]',
+        'input[id="password"]'
+    ];
+
+    for (const selector of selectors) {
+        const field = document.querySelector(selector);
+        if (field && isVisible(field)) return field;
+    }
+
+    return null;
+}
+
+function isVisible(el) {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    return (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        style.opacity !== "0" &&
+        el.offsetParent !== null
+    );
+}
+
+// ─── Set Value (React/Framework Compatible) ─────────────────────
+
+function setFieldValue(field, value) {
+    // Use native input value setter to bypass React's synthetic events
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, "value"
+    ).set;
+
+    nativeInputValueSetter.call(field, value);
+
+    // Dispatch events so React/Vue/Angular detect the change
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+    field.dispatchEvent(new Event("blur", { bubbles: true }));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 3. PASSWORD GENERATOR BUTTONS
+// ═══════════════════════════════════════════════════════════════════
+
+function generateStrongPassword() {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=";
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array, (byte) => chars[byte % chars.length]).join("");
+}
+
+function injectGenerateButtons() {
+    chrome.storage.local.get(["extensionActive"], (data) => {
+        // Default to active if not set
+        if (data.extensionActive === false) {
+            document.querySelectorAll(".sv-btn").forEach((btn) => btn.remove());
             return;
         }
 
-        // IF ACTIVE: Inject buttons
-        passwordInputs.forEach(input => {
-            // Prevent duplicate buttons
-            if (input.nextElementSibling && input.nextElementSibling.classList.contains('sv-btn')) {
-                return;
-            }
+        const passwordInputs = document.querySelectorAll('input[type="password"]');
 
-            const svButton = document.createElement('button');
-            svButton.type = "button";
-            svButton.innerText = "🔑 Auto-Generate";
-            svButton.className = "sv-btn";
-            
-            // Insert after the input field
-            input.parentNode.insertBefore(svButton, input.nextSibling);
+        passwordInputs.forEach((input) => {
+            // Skip if button already exists
+            if (input.dataset.svInjected === "true") return;
+            input.dataset.svInjected = "true";
 
-            // Handle Click
-            svButton.addEventListener('click', async (e) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.innerText = "🔑 Generate";
+            btn.className = "sv-btn";
+
+            // Position near the input
+            input.parentNode.insertBefore(btn, input.nextSibling);
+
+            btn.addEventListener("click", (e) => {
                 e.preventDefault();
-                
-                const newPassword = generateStrongPassword();
-                input.value = newPassword;
-
-                // For the Hackathon Demo:
-                console.log("Password Generated. Next Step: Encrypting and sending to MongoDB...");
-                alert(`Generated: ${newPassword}\n\nThis will now be encrypted using your Master Key and saved to SecureVault.`);
+                e.stopPropagation();
+                const password = generateStrongPassword();
+                setFieldValue(input, password);
+                showAutofillNotification(`🔑 Password generated!`);
             });
         });
-
-        // AUTO-FILL LOGIC: If a password for this site exists, fill it automatically
-        await findAndFillStoredPassword(passwordInputs);
     });
 }
 
-async function findAndFillStoredPassword(inputs) {
-    const domain = window.location.hostname;
-    
-    try {
-        // Fetch from your Node.js Backend
-        const response = await fetch(`http://localhost:5000/api/passwords?domain=${domain}`);
-        const data = await response.json();
+// Check periodically for dynamically loaded password fields
+setInterval(injectGenerateButtons, 2000);
 
-        if (data && data.encryptedPassword) {
-            // In a full Zero-Knowledge flow, you would decrypt data.encryptedPassword 
-            // here using the Master Key stored in chrome.storage.local
-            inputs.forEach(input => {
-                if (input.value === "") { // Only fill if empty
-                    input.value = data.encryptedPassword; // Placeholder for decrypted pass
-                    console.log(`✅ Auto-filled password for ${domain}`);
-                }
-            });
-        }
-    } catch (err) {
-        // Silent fail if no password found or server is down
-        console.log("No saved password found for this domain.");
-    }
+// ═══════════════════════════════════════════════════════════════════
+// 4. AUTOFILL NOTIFICATION
+// ═══════════════════════════════════════════════════════════════════
+
+function showAutofillNotification(message) {
+    // Remove any existing notification
+    const existing = document.getElementById("sv-notification");
+    if (existing) existing.remove();
+
+    const notification = document.createElement("div");
+    notification.id = "sv-notification";
+    notification.className = "sv-notification";
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        notification.classList.add("sv-notification-show");
+    });
+
+    // Remove after 2.5 seconds
+    setTimeout(() => {
+        notification.classList.remove("sv-notification-show");
+        setTimeout(() => notification.remove(), 300);
+    }, 2500);
 }
-
-// --- 3. EXECUTION ---
-
-// Run every 1.5 seconds to handle dynamic page loads (like React/Next.js sites)
-setInterval(injectRecommendButtons, 1500);

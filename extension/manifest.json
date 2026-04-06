@@ -1,20 +1,24 @@
 {
     "manifest_version": 3,
     "name": "SecureVault",
+    "description": "Zero-knowledge password manager with client-side AES-256-GCM encryption",
     "version": "1.0",
     "permissions": [
         "storage",
         "activeTab",
-        "scripting"
+        "scripting",
+        "alarms"
     ],
     "host_permissions": [
-        "*://*.github.com/*",
-        "*://*.google.com/*",
-        "https://*/*",
-        "http://*/*"
+        "http://*/*",
+        "https://*/*"
     ],
+    "background": {
+        "service_worker": "background.js"
+    },
     "action": {
-        "default_popup": "popup/popup.html"
+        "default_popup": "popup/popup.html",
+        "default_title": "SecureVault"
     },
     "content_scripts": [
         {

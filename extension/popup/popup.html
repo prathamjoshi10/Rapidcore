@@ -1,47 +1,126 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <img src="../icons/icon48.png" alt="" class="logo-img">
-            <h1>SecureVault</h1>
+
+        <!-- ═══ HEADER ═══ -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🔐</span>
+                <h1>SecureVault</h1>
+            </div>
+            <button id="lock-btn" class="icon-btn" title="Lock Vault" style="display:none;">
+                <span>🔒</span>
+            </button>
         </header>
 
+        <!-- ═══ LOGIN SECTION ═══ -->
         <div id="login-section">
-            <p class="subtitle">Enter Master Key to unlock your vault.</p>
-            <input type="password" id="master-key" placeholder="Master Key">
-            <button id="unlock-btn">Unlock Vault</button>
+            <div class="login-card">
+                <div class="shield-icon">🛡️</div>
+                <p class="subtitle">Enter your master password to unlock the vault.</p>
+                <div class="input-group">
+                    <input type="password" id="master-password" placeholder="Master Password" autocomplete="off">
+                    <button id="show-password-btn" class="eye-btn" title="Show password">👁️</button>
+                </div>
+                <button id="unlock-btn" class="primary-btn">
+                    <span class="btn-text">Unlock Vault</span>
+                    <span class="btn-loader" style="display:none;">⏳</span>
+                </button>
+                <div id="login-error" class="error-msg" style="display:none;"></div>
+            </div>
         </div>
 
-        <div id="dashboard-section" style="display: none;">
-            <div class="status-bar">
-                <span>Auto-Fill Status</span>
+        <!-- ═══ DASHBOARD SECTION ═══ -->
+        <div id="dashboard-section" style="display:none;">
+
+            <!-- Detected Site Bar -->
+            <div class="site-bar">
+                <span class="site-label">🌐 Detected:</span>
+                <span id="detected-site" class="site-name">—</span>
+            </div>
+
+            <!-- Auto-Fill Toggle -->
+            <div class="toggle-bar">
+                <span>Auto-Fill</span>
                 <label class="switch">
-                    <input type="checkbox" id="extension-toggle" checked>
-                    <span class="slider round"></span>
+                    <input type="checkbox" id="autofill-toggle" checked>
+                    <span class="slider"></span>
                 </label>
             </div>
 
-            <hr>
+            <!-- Loading State -->
+            <div id="loading-state" class="state-card" style="display:none;">
+                <div class="spinner"></div>
+                <p>Fetching credentials...</p>
+            </div>
 
-            <h3>Your Passwords</h3>
-            <div id="password-list">
-                <div class="password-item">
-                    <span class="site">github.com</span>
-                    <span class="pass-blurred">••••••••••••</span>
+            <!-- Error State -->
+            <div id="error-state" class="state-card error" style="display:none;">
+                <span class="state-icon">⚠️</span>
+                <p id="error-message">Something went wrong</p>
+                <button id="retry-btn" class="secondary-btn">Retry</button>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="state-card" style="display:none;">
+                <span class="state-icon">📭</span>
+                <p>No credentials saved for this site.</p>
+                <p class="hint">Add credentials via the SecureVault web app.</p>
+            </div>
+
+            <!-- Credentials List -->
+            <div id="credentials-list"></div>
+
+            <!-- All Passwords Section -->
+            <div id="all-passwords-section" style="display:none;">
+                <div class="section-divider">
+                    <span>All Vault Entries</span>
                 </div>
-                <div class="password-item">
-                    <span class="site">google.com</span>
-                    <span class="pass-blurred">••••••••••••</span>
+                <div id="all-credentials-list"></div>
+            </div>
+
+            <button id="toggle-all-btn" class="secondary-btn" style="display:none;">
+                Show All Passwords
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Credential Card Template -->
+    <template id="credential-template">
+        <div class="credential-card">
+            <div class="credential-header">
+                <span class="credential-platform"></span>
+                <span class="credential-url"></span>
+            </div>
+            <div class="credential-field">
+                <label>Username</label>
+                <div class="field-row">
+                    <span class="field-value username-value">—</span>
+                    <button class="copy-btn" data-copy="username" title="Copy username">📋</button>
                 </div>
             </div>
-            
-            <button id="lock-btn" class="secondary">Lock Vault</button>
+            <div class="credential-field">
+                <label>Password</label>
+                <div class="field-row">
+                    <span class="field-value password-value blurred">••••••••••</span>
+                    <button class="reveal-btn" title="Show/Hide">👁️</button>
+                    <button class="copy-btn" data-copy="password" title="Copy password">📋</button>
+                </div>
+            </div>
+            <div class="credential-actions">
+                <button class="autofill-btn primary-btn small">⚡ Autofill</button>
+                <button class="open-url-btn secondary-btn small">🌐 Open Site</button>
+            </div>
         </div>
-    </div>
+    </template>
+
+    <script src="../crypto.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

@@ -1,24 +1,61 @@
-/* extension/content.css */
+/* ═══════════════════════════════════════════════════════════════════
+   SecureVault — Content Script Styles
+   Injected into all pages for generate buttons & notifications
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Generate Password Button ─────────────────────────────────── */
 .sv-btn {
-    background-color: #0f3460;
-    color: white;
-    border: 1px solid #1a1a2e;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: #e0e6f0;
+    border: 1px solid rgba(233, 69, 96, 0.2);
+    border-radius: 6px;
     padding: 6px 12px;
     margin-left: 8px;
     font-size: 12px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    transition: all 0.2s ease-in-out;
-    z-index: 9999; /* Make sure it sits on top */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.25s ease;
+    z-index: 99999;
+    position: relative;
+    white-space: nowrap;
 }
 
 .sv-btn:hover {
-    background-color: #e94560; /* Cool pink/red hover effect */
+    background: linear-gradient(135deg, #e94560, #d63851);
+    color: white;
+    border-color: #e94560;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
 }
 
 .sv-btn:active {
-    transform: translateY(1px);
+    transform: translateY(0);
+}
+
+/* ─── Autofill Notification ────────────────────────────────────── */
+.sv-notification {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: #e0e6f0;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(233, 69, 96, 0.25);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 2147483647;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    transform: translateX(100px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.sv-notification-show {
+    opacity: 1;
+    transform: translateX(0);
 }
