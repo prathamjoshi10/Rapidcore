@@ -38,8 +38,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// Credential routes (will be added in next batch)
-// app.use("/api/credentials", require("./routes/credential.routes"));
+// Credential routes
+app.use("/api/credentials", require("./routes/credential.routes"));
 
 // --------------- Error Handling ---------------
 // 404 handler
