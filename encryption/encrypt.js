@@ -1,12 +1,13 @@
-// Encrypts plaintext using AES-256-CBC and generates a unique IV
+// Encrypts plaintext using AES-256-GCM with a unique IV per operation.
+// GCM provides both encryption and authentication (integrity protection).
 export async function encryptData(plainTextPassword, cryptoKey) {
     const enc = new TextEncoder();
-    // AES-CBC requires a 16-byte Initialization Vector
-    const iv = window.crypto.getRandomValues(new Uint8Array(16));
+    // AES-GCM uses a 12-byte IV (recommended by NIST)
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
     const cipherBuffer = await window.crypto.subtle.encrypt(
         {
-            name: "AES-CBC",
+            name: "AES-GCM",
             iv: iv
         },
         cryptoKey,

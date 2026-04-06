@@ -15,17 +15,19 @@ export async function generateUserId(masterPassword) {
 }
 
 /**
- * Derive an AES-256-CBC key from master password + salt using PBKDF2.
+ * Derive an AES-256-GCM key from master password + salt using PBKDF2.
  *
  * @param {string} masterPassword - The user's master password
  * @param {string} saltHex        - Hex-encoded salt (32 hex chars = 16 bytes)
- * @returns {Promise<CryptoKey>}  - Non-extractable AES-CBC key
- * @throws {Error} If saltHex is missing or contains invalid characters
+ * @returns {Promise<CryptoKey>}  - Non-extractable AES-GCM key
+ * @throws {Error} If saltHex is missing, odd-length, or contains invalid characters
  */
 export async function deriveKey(masterPassword, saltHex) {
-    // Input validation - prevents null .map() crash from .match()
     if (!saltHex || typeof saltHex !== 'string' || !/^[0-9a-fA-F]+$/.test(saltHex)) {
         throw new Error('Key derivation failed: saltHex is missing or contains invalid characters.');
+    }
+    if (saltHex.length % 2 !== 0) {
+        throw new Error(`Key derivation failed: saltHex has odd length (${saltHex.length}), expected even-length hex.`);
     }
 
     const enc = new TextEncoder();
@@ -47,7 +49,7 @@ export async function deriveKey(masterPassword, saltHex) {
             hash: "SHA-256"
         },
         keyMaterial,
-        { name: "AES-CBC", length: 256 },
+        { name: "AES-GCM", length: 256 },
         false,
         ["encrypt", "decrypt"]
     );
