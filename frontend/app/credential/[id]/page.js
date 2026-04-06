@@ -34,7 +34,7 @@ export default function CredentialDetailsPage() {
     try {
       setIsLoading(true);
       const res = await api.get(`/api/credentials/${id}`);
-      const data = res.data;
+      const data = res.data.credential || res.data;
 
       // Decrypt password immediately for state
       const { deriveKey } = await import('../../../lib/crypto');
@@ -46,7 +46,7 @@ export default function CredentialDetailsPage() {
       setCredential(data);
       setFormData({
         platform: data.platform,
-        websiteUrl: data.websiteUrl || '',
+        platformUrl: data.platformUrl || '',
         username: data.username || '',
         password: data.password
       });
@@ -80,7 +80,7 @@ export default function CredentialDetailsPage() {
       // 3. Send update to backend
       const payload = {
         platform: formData.platform,
-        websiteUrl: formData.websiteUrl,
+        platformUrl: formData.platformUrl,
         username: formData.username,
         encryptedPassword: cipherHex,
         iv: ivHex
@@ -149,9 +149,9 @@ export default function CredentialDetailsPage() {
             <label>URL</label>
             <input
               type="url"
-              name="websiteUrl"
+              name="platformUrl"
               className="input-field"
-              value={formData.websiteUrl}
+              value={formData.platformUrl}
               onChange={handleChange}
               disabled={!isEditing}
             />

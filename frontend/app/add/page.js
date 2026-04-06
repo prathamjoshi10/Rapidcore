@@ -11,7 +11,7 @@ import styles from './page.module.css';
 export default function AddCredentialPage() {
   const [formData, setFormData] = useState({
     platform: '',
-    websiteUrl: '',
+    platformUrl: '',
     username: '',
     password: ''
   });
@@ -58,7 +58,7 @@ export default function AddCredentialPage() {
       const payload = {
         userId,
         platform: formData.platform,
-        websiteUrl: formData.websiteUrl,
+        platformUrl: formData.platformUrl,
         username: formData.username,
         encryptedPassword: cipherHex,
         iv: ivHex,
@@ -101,14 +101,14 @@ export default function AddCredentialPage() {
           </div>
 
           <div className={styles.inputGroup}>
-            <label htmlFor="websiteUrl">Website URL</label>
+            <label htmlFor="platformUrl">Website URL</label>
             <input
-              id="websiteUrl"
-              name="websiteUrl"
+              id="platformUrl"
+              name="platformUrl"
               className="input-field"
               type="url"
               placeholder="e.g. https://github.com"
-              value={formData.websiteUrl}
+              value={formData.platformUrl}
               onChange={handleChange}
             />
           </div>

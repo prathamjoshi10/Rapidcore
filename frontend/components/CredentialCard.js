@@ -13,32 +13,7 @@ export default function CredentialCard({ credential, onDelete }) {
   const [copyStatus, setCopyStatus] = useState('');
   const { encryptionKey } = useVault();
 
-  const handleDecrypt = async () => {
-    if (showPassword) {
-      setShowPassword(false);
-      setDecryptedPassword('');
-      return;
-    }
 
-    setIsDecrypting(true);
-    try {
-      const plaintext = await decryptData(
-        credential.encryptedPassword,
-        credential.iv,
-        encryptionKey // This assumes encryptionKey is derived per credential. 
-        // Wait, NO! encryptionKey in context is `masterPassword` string currently!
-      );
-      
-      // Wait, in VaultContext I set encryptionKey to the masterPassword string!
-      // So `encryptionKey` is actually the `masterPassword`.
-      // The `decryptData` expects a `cryptoKey`! We need to derive it here.
-      // Let's import `deriveKey`. 
-      // But wait! Let's decouple it so `handleDecrypt` uses `deriveKey(encryptionKey, credential.salt)`.
-    } catch (err) {
-      console.error(err);
-    }
-    setIsDecrypting(false);
-  };
 
   // Rewrite handleDecrypt properly:
   const handleTogglePassword = async () => {
@@ -127,8 +102,8 @@ export default function CredentialCard({ credential, onDelete }) {
         <button onClick={copyToClipboard} className={styles.footerBtn}>
           📋 {copyStatus || 'Copy Password'}
         </button>
-        {credential.websiteUrl && (
-          <a href={credential.websiteUrl} target="_blank" rel="noopener noreferrer" className={styles.footerBtn}>
+        {credential.platformUrl && (
+          <a href={credential.platformUrl} target="_blank" rel="noopener noreferrer" className={styles.footerBtn}>
             🌍 Open App
           </a>
         )}

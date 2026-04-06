@@ -32,8 +32,9 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
       const res = await api.get(`/api/credentials?userId=${userId}`);
-      setCredentials(res.data);
-      setFilteredCredentials(res.data);
+      const creds = res.data.credentials || [];
+      setCredentials(creds);
+      setFilteredCredentials(creds);
     } catch (err) {
       console.error('Failed to fetch credentials:', err);
       setError('Failed to load credentials from the server.');
@@ -67,7 +68,7 @@ export default function DashboardPage() {
       // Remove locally
       const updated = credentials.filter(c => c._id !== id);
       setCredentials(updated);
-      setFilteredCredentials(updated.filter(c => filteredCredentials.some(fc => fc._id === c._id && fc._id !== id)));
+      setFilteredCredentials(filteredCredentials.filter(c => c._id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
       alert('Failed to delete credential.');
