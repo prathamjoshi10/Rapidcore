@@ -1,0 +1,70 @@
+.dashboard {
+  padding: 2rem 0;
+  position: relative;
+  min-height: calc(100vh - 100px);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: var(--text-secondary);
+}
+
+.error {
+  background: rgba(255, 71, 87, 0.1);
+  color: var(--danger);
+  padding: 1rem;
+  border-radius: var(--radius-btn);
+  text-align: center;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 3rem 0;
+  font-size: 1.1rem;
+}
+
+.fabBtn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.4);
+  transition: transform 0.2s, background 0.2s;
+  z-index: 100;
+  text-decoration: none;
+}
+
+.fabBtn:hover {
+  transform: scale(1.05);
+  background: var(--primary-hover);
+}
+
+@media (max-width: 768px) {
+  .fabBtn {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}

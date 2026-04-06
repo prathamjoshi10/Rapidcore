@@ -1,0 +1,56 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(18, 18, 26, 0.85); /* var(--surface) with opacity */
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.brand:hover {
+  opacity: 0.8;
+}
+
+.icon {
+  font-size: 1.5rem;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.link {
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.link:hover {
+  color: var(--text-primary);
+}
+
+.lockBtn {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
