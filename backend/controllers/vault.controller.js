@@ -1,6 +1,6 @@
 const crypto = require("crypto");
-const Credential = require("../models/Credential");
 const VaultAccount = require("../models/VaultAccount");
+const Vault = require("../models/Vault");
 
 function hashRecoveryKey(recoveryKey) {
   return crypto.createHash("sha256").update(recoveryKey).digest("hex");
@@ -19,9 +19,9 @@ exports.getVaultStatus = async (req, res, next) => {
     }
 
     const account = await VaultAccount.findOne({ userId }).lean();
-    const hasCredentials = !account && await Credential.exists({ userId });
+    const hasVaultEntries = !account && await Vault.exists({ userId });
 
-    res.json({ exists: Boolean(account || hasCredentials) });
+    res.json({ exists: Boolean(account || hasVaultEntries) });
   } catch (error) {
     next(error);
   }
@@ -36,8 +36,8 @@ exports.createVaultAccount = async (req, res, next) => {
     }
 
     const existingAccount = await VaultAccount.findOne({ userId }).lean();
-    const existingCredentials = !existingAccount && await Credential.exists({ userId });
-    if (existingAccount || existingCredentials) {
+    const existingVaultEntries = !existingAccount && await Vault.exists({ userId });
+    if (existingAccount || existingVaultEntries) {
       return res.status(409).json({ error: "A vault account already exists for this master password." });
     }
 
@@ -98,7 +98,7 @@ exports.resetVaultAccount = async (req, res, next) => {
       return res.status(409).json({ error: "That master password is already in use by another vault account." });
     }
 
-    await Credential.deleteMany({ userId: account.userId });
+    await Vault.deleteMany({ userId: account.userId });
 
     const nextRecoveryKey = generateRecoveryKey();
     account.userId = newUserId;
