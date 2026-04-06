@@ -24,13 +24,8 @@ export default function CredentialCard({ credential, onDelete }) {
     try {
       const key = await deriveKey(encryptionKey, credential.salt);
       const plaintext = await decryptData(credential.encryptedPassword, credential.iv, key);
-      
-      if (plaintext) {
-        setDecryptedPassword(plaintext);
-        setShowPassword(true);
-      } else {
-        setDecryptedPassword('ERROR: Bad Key');
-      }
+      setDecryptedPassword(plaintext);
+      setShowPassword(true);
     } catch (err) {
       console.error(err);
       setDecryptedPassword('ERROR');
@@ -71,7 +66,7 @@ export default function CredentialCard({ credential, onDelete }) {
       
       <div className={styles.body}>
         <p className={styles.username}>
-          <span className={styles.label}>Username:</span> {credential.username}
+          <span className={styles.label}>Username:</span> {credential.username || 'Not set'}
         </p>
         <div className={styles.passwordField}>
           <input 
