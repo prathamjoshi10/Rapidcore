@@ -1,9 +1,3 @@
-/**
- * Validate a hex string: must be non-empty, even-length, and hex-only.
- * @param {*} hex - Value to validate
- * @param {string} label - Name for error messages (e.g. 'cipherHex')
- * @throws {Error} If validation fails
- */
 function validateHex(hex, label) {
     if (!hex || typeof hex !== 'string') {
         throw new Error(`Decryption failed: ${label} is missing or not a string.`);
@@ -16,17 +10,6 @@ function validateHex(hex, label) {
     }
 }
 
-/**
- * Decrypt AES-256-GCM encrypted data back to plaintext.
- * GCM mode provides authenticated decryption - tampered ciphertext will
- * fail with a clear error rather than silently producing garbage.
- *
- * @param {string} cipherHex - Hex-encoded ciphertext (includes GCM auth tag)
- * @param {string} ivHex     - Hex-encoded initialization vector (24 hex chars = 12 bytes)
- * @param {CryptoKey} cryptoKey - Derived AES key
- * @returns {string} Decrypted plaintext
- * @throws {Error} With descriptive message on any failure
- */
 export async function decryptData(cipherHex, ivHex, cryptoKey) {
     validateHex(cipherHex, 'cipherHex');
     validateHex(ivHex, 'ivHex');
@@ -47,7 +30,6 @@ export async function decryptData(cipherHex, ivHex, cryptoKey) {
 
         return dec.decode(decryptedBuffer);
     } catch (err) {
-        // Log generic message only; avoid exposing crypto internals in console
         console.error('Decryption failed: Incorrect master password or corrupted/tampered data.');
         throw new Error('Decryption failed: Incorrect master password or corrupted/tampered data.');
     }
