@@ -1,0 +1,243 @@
+.loginContainer {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 680px;
+  padding: 2rem;
+  box-shadow: none;
+}
+
+.hero {
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.heroText {
+  color: var(--text-secondary);
+}
+
+.mainMenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.menuOption {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: transparent;
+}
+
+.menuOptionActive {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.menuTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.panel {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.sectionLabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.header h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.warningText {
+  color: var(--danger);
+}
+
+.warningBanner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: var(--radius-btn);
+  background: rgba(255, 71, 87, 0.08);
+  color: var(--text-primary);
+}
+
+.warningBadge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldLabel {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.helperText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0;
+}
+
+.inputGroup input {
+  padding: 0.9rem 1rem;
+}
+
+.strengthWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.strengthBar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.strengthFill {
+  height: 100%;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.strengthLabel {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.recommendations {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+
+.recommendationHeader {
+  margin-bottom: 0.75rem;
+}
+
+.recommendationEyebrow {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.recommendationHeader h3 {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.recommendationText {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.recommendationList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendationRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+}
+
+.recommendationValue {
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.useButton {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.recommendationTips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.errorMsg {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: var(--radius-btn);
+  background: rgba(255, 71, 87, 0.08);
+  color: var(--danger);
+}
+
+.submitBtn {
+  width: 100%;
+}
+
+.footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.footer p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .loginCard {
+    padding: 1.25rem;
+  }
+
+  .recommendationRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
