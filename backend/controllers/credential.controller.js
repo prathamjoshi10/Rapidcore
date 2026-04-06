@@ -4,12 +4,12 @@ const Credential = require("../models/Credential");
 // @route   POST /api/credentials
 exports.storeCredential = async (req, res, next) => {
   try {
-    const { userId, platform, platformUrl, username, encryptedPassword, iv, notes } = req.body;
+    const { userId, platform, platformUrl, username, encryptedPassword, iv, salt, notes } = req.body;
 
     // Validate required fields
-    if (!userId || !platform || !username || !encryptedPassword || !iv) {
+    if (!userId || !platform || !username || !encryptedPassword || !iv || !salt) {
       return res.status(400).json({
-        error: "Missing required fields: userId, platform, username, encryptedPassword, iv",
+        error: "Missing required fields: userId, platform, username, encryptedPassword, iv, salt",
       });
     }
 
@@ -20,6 +20,7 @@ exports.storeCredential = async (req, res, next) => {
       username,
       encryptedPassword,
       iv,
+      salt,
       notes: notes || "",
     });
 
@@ -88,6 +89,7 @@ exports.updateCredential = async (req, res, next) => {
     if (encryptedPassword !== undefined) credential.encryptedPassword = encryptedPassword;
     if (iv !== undefined) credential.iv = iv;
     if (notes !== undefined) credential.notes = notes;
+    if (req.body.salt !== undefined) credential.salt = req.body.salt;
 
     await credential.save();
 
@@ -138,6 +140,32 @@ exports.searchCredentials = async (req, res, next) => {
     res.json({
       count: credentials.length,
       credentials,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Track credential usage (increment count + update lastUsed)
+// @route   PATCH /api/credentials/:id/track
+exports.trackUsage = async (req, res, next) => {
+  try {
+    const credential = await Credential.findByIdAndUpdate(
+      req.params.id,
+      {
+        $inc: { usageCount: 1 },
+        $set: { lastUsed: new Date() },
+      },
+      { new: true }
+    ).select("-__v");
+
+    if (!credential) {
+      return res.status(404).json({ error: "Credential not found" });
+    }
+
+    res.json({
+      message: "Usage tracked",
+      credential,
     });
   } catch (error) {
     next(error);
