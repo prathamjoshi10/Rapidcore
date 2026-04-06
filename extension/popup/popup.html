@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="../icons/icon48.png" alt="" class="logo-img">
+            <h1>SecureVault</h1>
+        </header>
+
+        <div id="login-section">
+            <p class="subtitle">Enter Master Key to unlock your vault.</p>
+            <input type="password" id="master-key" placeholder="Master Key">
+            <button id="unlock-btn">Unlock Vault</button>
+        </div>
+
+        <div id="dashboard-section" style="display: none;">
+            <div class="status-bar">
+                <span>Auto-Fill Status</span>
+                <label class="switch">
+                    <input type="checkbox" id="extension-toggle" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <hr>
+
+            <h3>Your Passwords</h3>
+            <div id="password-list">
+                <div class="password-item">
+                    <span class="site">github.com</span>
+                    <span class="pass-blurred">••••••••••••</span>
+                </div>
+                <div class="password-item">
+                    <span class="site">google.com</span>
+                    <span class="pass-blurred">••••••••••••</span>
+                </div>
+            </div>
+            
+            <button id="lock-btn" class="secondary">Lock Vault</button>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

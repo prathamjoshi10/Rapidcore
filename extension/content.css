@@ -1,0 +1,24 @@
+/* extension/content.css */
+.sv-btn {
+    background-color: #0f3460;
+    color: white;
+    border: 1px solid #1a1a2e;
+    border-radius: 4px;
+    padding: 6px 12px;
+    margin-left: 8px;
+    font-size: 12px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.2s ease-in-out;
+    z-index: 9999; /* Make sure it sits on top */
+}
+
+.sv-btn:hover {
+    background-color: #e94560; /* Cool pink/red hover effect */
+    transform: translateY(-1px);
+}
+
+.sv-btn:active {
+    transform: translateY(1px);
+}

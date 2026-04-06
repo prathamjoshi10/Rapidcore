@@ -1,0 +1,63 @@
+body {
+    width: 320px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background-color: #0f3460;
+    color: white;
+}
+
+.container { padding: 20px; }
+
+header h1 { font-size: 1.2rem; margin: 0; color: #e94560; }
+
+.subtitle { font-size: 12px; color: #8892b0; margin-bottom: 15px; }
+
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #16213e;
+    background: #1a1a2e;
+    color: white;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: #e94560;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button.secondary { background: #16213e; margin-top: 15px; }
+
+/* THE TOGGLE SWITCH */
+.switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc; transition: .4s; border-radius: 20px;
+}
+input:checked + .slider { background-color: #e94560; }
+
+/* BLURRED PASSWORDS */
+.password-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+.pass-blurred {
+    filter: blur(4px); /* YOUR REQUIREMENT */
+    transition: filter 0.3s;
+    user-select: none;
+}
+.pass-blurred:hover { filter: blur(0); } /* Reveals on hover */

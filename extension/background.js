@@ -1,0 +1,1 @@
+console.log("⚙️ SecureVault Background Worker is alive!");
