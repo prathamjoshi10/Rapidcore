@@ -20,8 +20,16 @@ const credentialSchema = new mongoose.Schema(
     },
     username: {
       type: String,
-      required: [true, "Username is required"],
       trim: true,
+      default: "",
+    },
+    encryptedUsername: {
+      type: String,
+      default: "",
+    },
+    usernameIv: {
+      type: String,
+      default: "",
     },
     encryptedPassword: {
       type: String,
@@ -53,7 +61,6 @@ const credentialSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for faster queries per user
 credentialSchema.index({ userId: 1, platform: 1 });
 
 module.exports = mongoose.model("Credential", credentialSchema);

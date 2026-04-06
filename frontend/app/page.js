@@ -115,6 +115,7 @@ export default function LoginPage() {
 
     try {
       await unlockVault(masterPassword);
+      router.push('/dashboard');
     } catch (err) {
       console.error(err);
       setError('Failed to unlock vault. Please try again.');
@@ -141,6 +142,7 @@ export default function LoginPage() {
 
     try {
       await unlockVault(masterPassword);
+      router.push('/dashboard');
     } catch (err) {
       console.error(err);
       setError('Failed to create vault. Please try again.');
@@ -167,6 +169,7 @@ export default function LoginPage() {
 
     try {
       await unlockVault(masterPassword);
+      router.push('/dashboard');
     } catch (err) {
       console.error(err);
       setError('Failed to reset vault. Please try again.');
