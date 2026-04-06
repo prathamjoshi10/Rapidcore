@@ -89,7 +89,7 @@ export default function LoginPage() {
   const [recoveryKey, setRecoveryKey] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const { unlockVault, isUnlocked } = useVault();
+  const { unlockVault, createVaultAccount, resetVaultAccount, isUnlocked } = useVault();
   const router = useRouter();
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Failed to unlock vault. Please try again.');
+      setError('Vault not found for that master password.');
       setIsSubmitting(false);
     }
   };
@@ -141,11 +141,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await unlockVault(masterPassword);
+      const nextRecoveryKey = await createVaultAccount(masterPassword);
+      window.alert(`Vault created. Save this recovery key safely:\n\n${nextRecoveryKey}`);
       router.push('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Failed to create vault. Please try again.');
+      setError(err?.response?.data?.error || 'Failed to create vault. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -168,11 +169,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await unlockVault(masterPassword);
+      const nextRecoveryKey = await resetVaultAccount(recoveryKey, masterPassword);
+      window.alert(`Vault reset successful. Save your new recovery key safely:\n\n${nextRecoveryKey}`);
       router.push('/dashboard');
     } catch (err) {
       console.error(err);
-      setError('Failed to reset vault. Please try again.');
+      setError(err?.response?.data?.error || 'Failed to reset vault. Please try again.');
       setIsSubmitting(false);
     }
   };

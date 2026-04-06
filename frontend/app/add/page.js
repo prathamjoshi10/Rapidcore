@@ -59,7 +59,7 @@ export default function AddCredentialPage() {
         userId,
         platform: formData.platform,
         platformUrl: formData.platformUrl,
-        username: formData.username,
+        username: '',
         encryptedPassword,
         iv: passwordIv,
         encryptedUsername,

@@ -7,6 +7,7 @@ import { useVault } from '../../context/VaultContext';
 import SearchBar from '../../components/SearchBar';
 import VaultList from '../../components/VaultList';
 import api from '../../lib/api';
+import { decryptData, deriveKey } from '../../lib/crypto';
 import styles from './page.module.css';
 
 export default function DashboardPage() {
@@ -15,7 +16,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const { isUnlocked, userId } = useVault();
+  const { isUnlocked, userId, encryptionKey } = useVault();
   const router = useRouter();
 
   useEffect(() => {
@@ -24,15 +25,34 @@ export default function DashboardPage() {
       return;
     }
 
+    if (!userId || !encryptionKey) {
+      return;
+    }
+
     fetchCredentials();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUnlocked, userId]);
+  }, [isUnlocked, userId, encryptionKey]);
 
   const fetchCredentials = async () => {
     try {
       setIsLoading(true);
       const res = await api.get(`/api/credentials?userId=${userId}`);
-      const creds = res.data.credentials || [];
+      const creds = await Promise.all(
+        (res.data.credentials || []).map(async (credential) => {
+          if (!credential.encryptedUsername || !credential.usernameIv) {
+            return credential;
+          }
+
+          try {
+            const key = await deriveKey(encryptionKey, credential.salt);
+            const username = await decryptData(credential.encryptedUsername, credential.usernameIv, key);
+            return { ...credential, username };
+          } catch (err) {
+            console.error('Failed to decrypt username:', err);
+            return { ...credential, username: '' };
+          }
+        })
+      );
       setCredentials(creds);
       setFilteredCredentials(creds);
     } catch (err) {
@@ -62,7 +82,7 @@ export default function DashboardPage() {
     if (!window.confirm('Are you sure you want to delete this credential?')) return;
     
     try {
-      await api.delete(`/api/credentials/${id}`);
+      await api.delete(`/api/credentials/${id}`, { params: { userId } });
       const updated = credentials.filter(c => c._id !== id);
       setCredentials(updated);
       setFilteredCredentials(filteredCredentials.filter(c => c._id !== id));

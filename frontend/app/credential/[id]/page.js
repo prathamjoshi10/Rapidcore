@@ -26,20 +26,28 @@ export default function CredentialDetailsPage() {
       router.push('/');
       return;
     }
+
+    if (!userId || !encryptionKey) {
+      return;
+    }
+
     fetchCredential();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isUnlocked]);
+  }, [id, isUnlocked, userId, encryptionKey]);
 
   const fetchCredential = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get(`/api/credentials/${id}`);
+      const res = await api.get(`/api/credentials/${id}`, { params: { userId } });
       const data = res.data.credential || res.data;
 
-      // Decrypt password
       const cryptoKey = await deriveKey(encryptionKey, data.salt);
+      const decUsername = data.encryptedUsername && data.usernameIv
+        ? await decryptData(data.encryptedUsername, data.usernameIv, cryptoKey)
+        : '';
       const decPwd = await decryptData(data.encryptedPassword, data.iv, cryptoKey);
 
+      data.username = decUsername;
       data.password = decPwd || "ERROR: Could not decrypt";
 
       setCredential(data);
@@ -51,7 +59,7 @@ export default function CredentialDetailsPage() {
       });
 
       // Track usage
-      await api.patch(`/api/credentials/${id}/track`).catch(() => {});
+      await api.patch(`/api/credentials/${id}/track`, { userId }).catch(() => {});
     } catch (err) {
       console.error(err);
       setError('Failed to load credential');
@@ -70,19 +78,23 @@ export default function CredentialDetailsPage() {
 
     try {
       const cryptoKey = await deriveKey(encryptionKey, credential.salt);
-      const { cipherHex, ivHex } = await encryptData(formData.password, cryptoKey);
+      const { cipherHex: encryptedPassword, ivHex: passwordIv } = await encryptData(formData.password, cryptoKey);
+      const { cipherHex: encryptedUsername, ivHex: usernameIv } = await encryptData(formData.username || '', cryptoKey);
 
       const payload = {
+        userId,
         platform: formData.platform,
         platformUrl: formData.platformUrl,
-        username: formData.username,
-        encryptedPassword: cipherHex,
-        iv: ivHex
+        username: '',
+        encryptedUsername,
+        usernameIv,
+        encryptedPassword,
+        iv: passwordIv
       };
 
       await api.put(`/api/credentials/${id}`, payload);
       
-      setCredential({ ...credential, ...payload, password: formData.password });
+      setCredential({ ...credential, ...payload, username: formData.username, password: formData.password });
       setIsEditing(false);
       alert('Updated successfully!');
     } catch (err) {
@@ -97,7 +109,7 @@ export default function CredentialDetailsPage() {
     if (!window.confirm('Are you sure you want to completely delete this credential?')) return;
     
     try {
-      await api.delete(`/api/credentials/${id}`);
+      await api.delete(`/api/credentials/${id}`, { params: { userId } });
       router.push('/dashboard');
     } catch (err) {
       alert('Failed to delete');

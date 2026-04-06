@@ -1,9 +1,6 @@
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { VaultProvider } from '../context/VaultContext';
 import Navbar from '../components/Navbar';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'SecureVault | Encrypted Password Manager',
@@ -12,7 +9,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en">
       <body>
         <VaultProvider>
           <Navbar />

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { generateUserId } from '../lib/crypto';
+import api from '../lib/api';
 
 const VaultContext = createContext();
 
@@ -41,10 +42,40 @@ export function VaultProvider({ children }) {
 
   const unlockVault = async (masterPassword) => {
     const currentUserId = await generateUserId(masterPassword);
-    
+
+    const res = await api.get('/api/vault', { params: { userId: currentUserId } });
+    if (!res.data?.exists) {
+      throw new Error('Vault account not found');
+    }
+
     setEncryptionKey(masterPassword); // Storing the password in memory to derive per-credential keys
     setUserId(currentUserId);
     setIsUnlocked(true);
+  };
+
+  const createVaultAccount = async (masterPassword) => {
+    const currentUserId = await generateUserId(masterPassword);
+    const res = await api.post('/api/vault', { userId: currentUserId });
+
+    setEncryptionKey(masterPassword);
+    setUserId(currentUserId);
+    setIsUnlocked(true);
+
+    return res.data?.recoveryKey || '';
+  };
+
+  const resetVaultAccount = async (recoveryKey, newMasterPassword) => {
+    const currentUserId = await generateUserId(newMasterPassword);
+    const res = await api.post('/api/vault/reset', {
+      recoveryKey,
+      newUserId: currentUserId,
+    });
+
+    setEncryptionKey(newMasterPassword);
+    setUserId(currentUserId);
+    setIsUnlocked(true);
+
+    return res.data?.recoveryKey || '';
   };
 
   const lockVault = () => {
@@ -55,7 +86,9 @@ export function VaultProvider({ children }) {
   };
 
   return (
-    <VaultContext.Provider value={{ encryptionKey, userId, isUnlocked, unlockVault, lockVault }}>
+    <VaultContext.Provider
+      value={{ encryptionKey, userId, isUnlocked, unlockVault, createVaultAccount, resetVaultAccount, lockVault }}
+    >
       {children}
     </VaultContext.Provider>
   );

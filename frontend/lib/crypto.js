@@ -1,9 +1,30 @@
+function hexToBytes(hex, label, expectedByteLength) {
+  if (!hex || typeof hex !== 'string' || !/^[0-9a-fA-F]+$/.test(hex)) {
+    throw new Error(`${label} is missing or contains invalid characters.`);
+  }
+  if (hex.length % 2 !== 0) {
+    throw new Error(`${label} has odd length.`);
+  }
+
+  const bytes = new Uint8Array(hex.match(/.{1,2}/g).map((h) => parseInt(h, 16)));
+
+  if (expectedByteLength && bytes.length !== expectedByteLength) {
+    throw new Error(`${label} must be ${expectedByteLength} bytes.`);
+  }
+
+  return bytes;
+}
+
 export async function generateSalt() {
   const salt = window.crypto.getRandomValues(new Uint8Array(16));
   return Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export async function generateUserId(masterPassword) {
+  if (!masterPassword || typeof masterPassword !== 'string') {
+    throw new Error('Master password is required.');
+  }
+
   const enc = new TextEncoder();
   const hashBuffer = await window.crypto.subtle.digest("SHA-256", enc.encode(masterPassword));
   return Array.from(new Uint8Array(hashBuffer))
@@ -11,15 +32,12 @@ export async function generateUserId(masterPassword) {
 }
 
 export async function deriveKey(masterPassword, saltHex) {
-  if (!saltHex || typeof saltHex !== 'string' || !/^[0-9a-fA-F]+$/.test(saltHex)) {
-    throw new Error('Key derivation failed: saltHex is missing or contains invalid characters.');
-  }
-  if (saltHex.length % 2 !== 0) {
-    throw new Error('Key derivation failed: saltHex has odd length.');
+  if (!masterPassword || typeof masterPassword !== 'string') {
+    throw new Error('Key derivation failed: master password is required.');
   }
 
   const enc = new TextEncoder();
-  const saltBuffer = new Uint8Array(saltHex.match(/.{1,2}/g).map(h => parseInt(h, 16)));
+  const saltBuffer = hexToBytes(saltHex, 'saltHex', 16);
 
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
@@ -62,17 +80,10 @@ export async function encryptData(plaintext, cryptoKey) {
 }
 
 export async function decryptData(cipherHex, ivHex, cryptoKey) {
-  if (!cipherHex || typeof cipherHex !== 'string' || !/^[0-9a-fA-F]+$/.test(cipherHex)) {
-    throw new Error('Decryption failed: invalid cipherHex.');
-  }
-  if (!ivHex || typeof ivHex !== 'string' || !/^[0-9a-fA-F]+$/.test(ivHex)) {
-    throw new Error('Decryption failed: invalid ivHex.');
-  }
+  const cipherBuffer = hexToBytes(cipherHex, 'cipherHex');
+  const ivBuffer = hexToBytes(ivHex, 'ivHex', 12);
 
   try {
-    const cipherBuffer = new Uint8Array(cipherHex.match(/.{1,2}/g).map(h => parseInt(h, 16)));
-    const ivBuffer = new Uint8Array(ivHex.match(/.{1,2}/g).map(h => parseInt(h, 16)));
-
     const decryptedBuffer = await window.crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: ivBuffer },
       cryptoKey,
@@ -80,8 +91,8 @@ export async function decryptData(cipherHex, ivHex, cryptoKey) {
     );
 
     return new TextDecoder().decode(decryptedBuffer);
-  } catch (err) {
+  } catch {
     console.error('Decryption failed: Incorrect master password or corrupted data.');
-    return null;
+    throw new Error('Decryption failed: Incorrect master password or corrupted data.');
   }
 }

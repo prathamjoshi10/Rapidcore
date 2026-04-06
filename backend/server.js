@@ -46,6 +46,7 @@ app.get("/health", (req, res) => {
 
 // Credential routes
 app.use("/api/credentials", require("./routes/credential.routes"));
+app.use("/api/vault", require("./routes/vault.routes"));
 
 // --------------- Error Handling ---------------
 // 404 handler

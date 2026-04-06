@@ -1,5 +1,9 @@
 const Credential = require("../models/Credential");
 
+function findCredentialForUser(id, userId) {
+  return Credential.findOne({ _id: id, userId }).select("-__v");
+}
+
 exports.storeCredential = async (req, res, next) => {
   try {
     const { userId, platform, platformUrl, username, encryptedUsername, usernameIv, encryptedPassword, iv, salt, notes } = req.body;
@@ -53,7 +57,13 @@ exports.getAllCredentials = async (req, res, next) => {
 
 exports.getCredentialById = async (req, res, next) => {
   try {
-    const credential = await Credential.findById(req.params.id).select("-__v");
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId query parameter is required" });
+    }
+
+    const credential = await findCredentialForUser(req.params.id, userId);
 
     if (!credential) {
       return res.status(404).json({ error: "Credential not found" });
@@ -67,9 +77,13 @@ exports.getCredentialById = async (req, res, next) => {
 
 exports.updateCredential = async (req, res, next) => {
   try {
-    const { platform, platformUrl, username, encryptedUsername, usernameIv, encryptedPassword, iv, notes } = req.body;
+    const { userId, platform, platformUrl, username, encryptedUsername, usernameIv, encryptedPassword, iv, notes } = req.body;
 
-    const credential = await Credential.findById(req.params.id).select("-__v");
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const credential = await findCredentialForUser(req.params.id, userId);
 
     if (!credential) {
       return res.status(404).json({ error: "Credential not found" });
@@ -98,7 +112,13 @@ exports.updateCredential = async (req, res, next) => {
 
 exports.deleteCredential = async (req, res, next) => {
   try {
-    const credential = await Credential.findByIdAndDelete(req.params.id);
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId query parameter is required" });
+    }
+
+    const credential = await Credential.findOneAndDelete({ _id: req.params.id, userId });
 
     if (!credential) {
       return res.status(404).json({ error: "Credential not found" });
@@ -138,8 +158,14 @@ exports.searchCredentials = async (req, res, next) => {
 
 exports.trackUsage = async (req, res, next) => {
   try {
-    const credential = await Credential.findByIdAndUpdate(
-      req.params.id,
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const credential = await Credential.findOneAndUpdate(
+      { _id: req.params.id, userId },
       {
         $inc: { usageCount: 1 },
         $set: { lastUsed: new Date() },
