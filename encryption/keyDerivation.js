@@ -1,12 +1,9 @@
-// Generate a random 16-byte salt (hex-encoded) for each credential
 export function generateSalt() {
     const salt = window.crypto.getRandomValues(new Uint8Array(16));
     return Array.from(salt)
         .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Derive a deterministic userId from the master password (SHA-256 hash)
-// This eliminates the need for a separate signup/login flow
 export async function generateUserId(masterPassword) {
     const enc = new TextEncoder();
     const hashBuffer = await window.crypto.subtle.digest("SHA-256", enc.encode(masterPassword));
@@ -14,21 +11,12 @@ export async function generateUserId(masterPassword) {
         .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * Derive an AES-256-CBC key from master password + salt using PBKDF2.
- *
- * @param {string} masterPassword - The user's master password
- * @param {string} saltHex        - Hex-encoded salt (32 hex chars = 16 bytes)
- * @returns {Promise<CryptoKey>}  - Non-extractable AES-CBC key
- * @throws {Error} If saltHex is missing or contains invalid characters
- */
 export async function deriveKey(masterPassword, saltHex) {
-    // --- Input validation (Finding #2) ---
-    if (!saltHex || typeof saltHex !== 'string') {
-        throw new Error('Key derivation failed: saltHex is missing or not a string.');
+    if (!saltHex || typeof saltHex !== 'string' || !/^[0-9a-fA-F]+$/.test(saltHex)) {
+        throw new Error('Key derivation failed: saltHex is missing or contains invalid characters.');
     }
-    if (!/^[0-9a-fA-F]+$/.test(saltHex)) {
-        throw new Error('Key derivation failed: saltHex contains non-hex characters.');
+    if (saltHex.length % 2 !== 0) {
+        throw new Error(`Key derivation failed: saltHex has odd length (${saltHex.length}), expected even-length hex.`);
     }
 
     const enc = new TextEncoder();
@@ -40,7 +28,6 @@ export async function deriveKey(masterPassword, saltHex) {
         ["deriveKey"]
     );
 
-    // Safe hex → Uint8Array (validated above, so .match() will never be null)
     const salt = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
 
     return window.crypto.subtle.deriveKey(
@@ -51,7 +38,7 @@ export async function deriveKey(masterPassword, saltHex) {
             hash: "SHA-256"
         },
         keyMaterial,
-        { name: "AES-CBC", length: 256 },
+        { name: "AES-GCM", length: 256 },
         false,
         ["encrypt", "decrypt"]
     );

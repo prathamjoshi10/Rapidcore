@@ -1,37 +1,27 @@
-/**
- * Decrypt AES-256-CBC encrypted data back to plaintext.
- *
- * @param {string} cipherHex - Hex-encoded ciphertext
- * @param {string} ivHex     - Hex-encoded initialization vector
- * @param {CryptoKey} cryptoKey - Derived AES key
- * @returns {string} Decrypted plaintext
- * @throws {Error} With descriptive message on any failure
- */
+function validateHex(hex, label) {
+    if (!hex || typeof hex !== 'string') {
+        throw new Error(`Decryption failed: ${label} is missing or not a string.`);
+    }
+    if (!/^[0-9a-fA-F]+$/.test(hex)) {
+        throw new Error(`Decryption failed: ${label} contains invalid characters.`);
+    }
+    if (hex.length % 2 !== 0) {
+        throw new Error(`Decryption failed: ${label} has odd length (${hex.length}), expected even-length hex.`);
+    }
+}
+
 export async function decryptData(cipherHex, ivHex, cryptoKey) {
-    // --- Input validation (Finding #1) ---
-    if (!cipherHex || typeof cipherHex !== 'string') {
-        throw new Error('Decryption failed: cipherHex is missing or not a string.');
-    }
-    if (!ivHex || typeof ivHex !== 'string') {
-        throw new Error('Decryption failed: ivHex is missing or not a string.');
-    }
-    if (!/^[0-9a-fA-F]+$/.test(cipherHex)) {
-        throw new Error('Decryption failed: cipherHex contains non-hex characters.');
-    }
-    if (!/^[0-9a-fA-F]+$/.test(ivHex)) {
-        throw new Error('Decryption failed: ivHex contains non-hex characters.');
-    }
+    validateHex(cipherHex, 'cipherHex');
+    validateHex(ivHex, 'ivHex');
 
     const dec = new TextDecoder();
-
-    // Safe hex → Uint8Array conversion (no null .map crash)
     const cipherBytes = new Uint8Array(cipherHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
     const ivBytes = new Uint8Array(ivHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
 
     try {
         const decryptedBuffer = await window.crypto.subtle.decrypt(
             {
-                name: "AES-CBC",
+                name: "AES-GCM",
                 iv: ivBytes
             },
             cryptoKey,
@@ -40,10 +30,7 @@ export async function decryptData(cipherHex, ivHex, cryptoKey) {
 
         return dec.decode(decryptedBuffer);
     } catch (err) {
-        // Finding #3 & #5 — include original error for diagnostics,
-        // and keep thrown message consistent with logged message
-        const reason = 'Decryption failed: Incorrect master password or corrupted data.';
-        console.error(reason, err);
-        throw new Error(reason);
+        console.error('Decryption failed: Incorrect master password or corrupted/tampered data.');
+        throw new Error('Decryption failed: Incorrect master password or corrupted/tampered data.');
     }
 }
