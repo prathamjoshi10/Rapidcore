@@ -1,0 +1,124 @@
+/* [project]/app/globals.css [app-client] (css) */
+:root {
+  --background: #0a0a0f;
+  --surface: #12121a;
+  --surface-hover: #1a1a2e;
+  --primary: #6c63ff;
+  --primary-hover: #5a52d5;
+  --danger: #ff4757;
+  --success: #2ed573;
+  --text-primary: #e8e8e8;
+  --text-secondary: #8b8b9e;
+  --border: #2a2a3e;
+  --radius-card: 12px;
+  --radius-btn: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: Inter, sans-serif;
+  display: flex;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  transition: all .2s;
+}
+
+input {
+  font-family: inherit;
+  transition: all .2s;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+}
+
+.btn {
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
+  gap: .5rem;
+  padding: .75rem 1.5rem;
+  font-weight: 500;
+  display: inline-flex;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  opacity: .9;
+}
+
+.input-field {
+  background: var(--background);
+  border: 1px solid var(--border);
+  width: 100%;
+  color: var(--text-primary);
+  border-radius: var(--radius-btn);
+  outline: none;
+  padding: .75rem 1rem;
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: .3s forwards fadeIn;
+}
+
+/*# sourceMappingURL=app_globals_css_0w3-wzy._.single.css.map*/

@@ -1,0 +1,60 @@
+/* [project]/frontend/components/Navbar.module.css [app-client] (css) */
+.Navbar-module__TcZsTG__navbar {
+  z-index: 50;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  background: #12121ad9;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+}
+
+.Navbar-module__TcZsTG__container {
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+}
+
+.Navbar-module__TcZsTG__brand {
+  align-items: center;
+  gap: .5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  transition: opacity .2s;
+  display: flex;
+}
+
+.Navbar-module__TcZsTG__brand:hover {
+  opacity: .8;
+}
+
+.Navbar-module__TcZsTG__icon {
+  font-size: 1.5rem;
+}
+
+.Navbar-module__TcZsTG__navLinks {
+  align-items: center;
+  gap: 1.5rem;
+  display: flex;
+}
+
+.Navbar-module__TcZsTG__link {
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: color .2s;
+}
+
+.Navbar-module__TcZsTG__link:hover {
+  color: var(--text-primary);
+}
+
+.Navbar-module__TcZsTG__lockBtn {
+  padding: .5rem 1rem;
+  font-size: .9rem;
+}
+
+/*# sourceMappingURL=%5Bproject%5D_frontend_components_Navbar_module_css_0w3-wzy._.single.css.map*/

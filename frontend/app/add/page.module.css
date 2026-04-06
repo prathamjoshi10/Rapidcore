@@ -1,0 +1,77 @@
+.addContainer {
+  padding: 2rem 0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.backBtn {
+  display: inline-block;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  transition: color 0.2s;
+}
+
+.backBtn:hover {
+  color: var(--text-primary);
+}
+
+.header h1 {
+  font-size: 1.75rem;
+}
+
+.formCard {
+  padding: 2rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.inputGroup label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.passwordField {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.passwordField .input-field {
+  flex: 1;
+}
+
+.genBtn {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.genBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  color: var(--primary);
+}
+
+.actions {
+  margin-top: 0.5rem;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+}
