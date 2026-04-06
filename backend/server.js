@@ -6,6 +6,9 @@ require("dotenv").config();
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
 
+// Import User Routes
+const userRoutes = require('./routes/user.routes');
+
 // Initialize Express app
 const app = express();
 
@@ -44,8 +47,11 @@ app.get("/health", (req, res) => {
   res.send("Server is running");
 });
 
-// Credential routes
+// Mount Credential Routes
 app.use("/api/credentials", require("./routes/credential.routes"));
+
+// Mount User Routes (For Multi-Device Salt Handling)
+app.use("/api/users", userRoutes);
 
 // --------------- Error Handling ---------------
 // 404 handler
