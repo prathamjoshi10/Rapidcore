@@ -44,6 +44,9 @@ app.get("/health", (req, res) => {
   res.send("Server is running");
 });
 
+// MVP round-2 API routes
+app.use("/", require("./routes/mvp.routes"));
+
 // Credential routes
 app.use("/api/credentials", require("./routes/credential.routes"));
 app.use("/api/vault", require("./routes/vault.routes"));

@@ -1,7 +1,7 @@
-const Credential = require("../models/Credential");
+const Vault = require("../models/Vault");
 
 function findCredentialForUser(id, userId) {
-  return Credential.findOne({ _id: id, userId }).select("-__v");
+  return Vault.findOne({ _id: id, userId }).select("-__v");
 }
 
 exports.storeCredential = async (req, res, next) => {
@@ -14,7 +14,7 @@ exports.storeCredential = async (req, res, next) => {
       });
     }
 
-    const credential = await Credential.create({
+    const credential = await Vault.create({
       userId,
       platform,
       platformUrl: platformUrl || "",
@@ -30,6 +30,7 @@ exports.storeCredential = async (req, res, next) => {
     res.status(201).json({
       message: "Credential stored successfully",
       credential,
+      vault: credential,
     });
   } catch (error) {
     next(error);
@@ -44,11 +45,12 @@ exports.getAllCredentials = async (req, res, next) => {
       return res.status(400).json({ error: "userId query parameter is required" });
     }
 
-    const credentials = await Credential.find({ userId }).select("-__v").sort({ updatedAt: -1 });
+    const credentials = await Vault.find({ userId }).select("-__v").sort({ updatedAt: -1 });
 
     res.json({
       count: credentials.length,
       credentials,
+      vaults: credentials,
     });
   } catch (error) {
     next(error);
@@ -118,7 +120,7 @@ exports.deleteCredential = async (req, res, next) => {
       return res.status(400).json({ error: "userId query parameter is required" });
     }
 
-    const credential = await Credential.findOneAndDelete({ _id: req.params.id, userId });
+    const credential = await Vault.findOneAndDelete({ _id: req.params.id, userId });
 
     if (!credential) {
       return res.status(404).json({ error: "Credential not found" });
@@ -142,7 +144,7 @@ exports.searchCredentials = async (req, res, next) => {
       return res.status(400).json({ error: "Search query (q) is required" });
     }
 
-    const credentials = await Credential.find({
+    const credentials = await Vault.find({
       userId,
       platform: { $regex: q, $options: "i" },
     }).select("-__v").sort({ updatedAt: -1 });
@@ -150,6 +152,7 @@ exports.searchCredentials = async (req, res, next) => {
     res.json({
       count: credentials.length,
       credentials,
+      vaults: credentials,
     });
   } catch (error) {
     next(error);
@@ -164,7 +167,7 @@ exports.trackUsage = async (req, res, next) => {
       return res.status(400).json({ error: "userId is required" });
     }
 
-    const credential = await Credential.findOneAndUpdate(
+    const credential = await Vault.findOneAndUpdate(
       { _id: req.params.id, userId },
       {
         $inc: { usageCount: 1 },

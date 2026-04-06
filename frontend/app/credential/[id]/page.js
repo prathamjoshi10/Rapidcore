@@ -38,8 +38,8 @@ export default function CredentialDetailsPage() {
   const fetchCredential = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get(`/api/credentials/${id}`, { params: { userId } });
-      const data = res.data.credential || res.data;
+      const res = await api.get(`/retrieve/${id}`, { params: { userId } });
+      const data = res.data.vault || res.data.credential || res.data;
 
       const cryptoKey = await deriveKey(encryptionKey, data.salt);
       const decUsername = data.encryptedUsername && data.usernameIv

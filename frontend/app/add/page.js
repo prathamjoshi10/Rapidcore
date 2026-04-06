@@ -67,7 +67,7 @@ export default function AddCredentialPage() {
         salt
       };
 
-      await api.post('/api/credentials', payload);
+      await api.post('/store', payload);
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to save credential:', err);

@@ -81,9 +81,9 @@ export default function DashboardPage() {
   const fetchCredentials = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get(`/api/credentials?userId=${userId}`);
+      const res = await api.get('/retrieve', { params: { userId } });
       const creds = await Promise.all(
-        (res.data.credentials || []).map(async (credential) => {
+        ((res.data.vaults || res.data.credentials || [])).map(async (credential) => {
           if (!credential.encryptedUsername || !credential.usernameIv) {
             return credential;
           }
