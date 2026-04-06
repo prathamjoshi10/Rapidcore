@@ -39,6 +39,11 @@ app.get("/", (req, res) => {
   });
 });
 
+// Health check (simple)
+app.get("/health", (req, res) => {
+  res.send("Server is running");
+});
+
 // Credential routes
 app.use("/api/credentials", require("./routes/credential.routes"));
 
