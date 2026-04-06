@@ -22,7 +22,7 @@ export { decryptData } from './decrypt.js';
 
 /**
  * Encrypt a full credential object (platform, username, password, url).
- * Only username and password are encrypted — platform & url stay plaintext
+ * Only username and password are encrypted - platform & url stay plaintext
  * for search/display purposes.
  *
  * @param {Object} credential - { platform, url, username, password }
