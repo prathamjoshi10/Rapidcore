@@ -1,55 +1,91 @@
-# 🔐 SecureVault
+<div align="center">
+  <img src="https://img.shields.io/badge/Security-Zero%20Knowledge-6C63FF?style=for-the-badge" alt="Zero-Knowledge Security" />
+  <img src="https://img.shields.io/badge/Frontend-Next.js%2014-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Backend-Node%20Express-3982CE?style=for-the-badge&logo=nodedotjs" alt="Node.js Express" />
+  <img src="https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb" alt="MongoDB" />
+  
+  <br />
+  <br />
+  
+  <h1>🛡️ SecureVault</h1>
+  <p><b>A modern, zero-knowledge encrypted password manager.</b></p>
+</div>
 
-A zero-knowledge encrypted password manager. Designed with security at its core, this application ensures that your passwords are encrypted on the client side before ever reaching the server.
+<br />
 
-![SecureVault UI Preview](https://via.placeholder.com/800x400.png?text=SecureVault+Zero+Knowledge+Manager)
+SecureVault is not just another password manager—it is a secure, decentralized digital vault built on absolute **Zero-Knowledge principles**. 
 
-## 🧠 Problem Statement
-Users reuse weak passwords across multiple sites because they cannot remember all of them. Existing solutions often store user passwords on centralized servers, creating massive honeypots for hackers.
+Your master password never leaves your device. Your data is encrypted mathematically strictly inside your browser. By the time it reaches the server, it is nothing more than an opaque, indistinguishable binary blob. If the database is ever compromised, the attacker gains absolutely nothing.
 
-## 🎯 Solution
-**SecureVault** is a **zero-knowledge** password manager. Your master password is never sent over the internet. Instead, your master password is used locally in your browser to derive an AES-256 encryption key.
+---
 
-## ⚙️ Core Architecture & Security Flow
+## ✨ Features
 
-1. **PBKDF2 Key Derivation**: When you sign in, your master password undergoes 100,000 iterations of PBKDF2 hashing with a unique salt to generate your client-side encryption key.
-2. **AES-256-CBC Encryption**: When adding a credential, your password is encrypted using this derived key along with a randomly generated Initialization Vector (IV).
-3. **Zero Knowledge Server**: The backend (Express/MongoDB) only receives the ciphertext and IV. It has absolutely no way to read your actual passwords.
+- **Zero-Knowledge Encryption**: We don't know your password. The database doesn't know your password. Only you do.
+- **Binary-Packed Vault Engine**: Credentials, salts, and initialization vectors are intricately packed into a single binary format before Base64 upload.
+- **Client-Side Cryptography**: Powered strictly by the native Web Crypto API (`PBKDF2`, `AES-256-GCM`). 
+- **Aether Crypt Design System**: Featuring a high-end "digital obsidian" aesthetic, glassmorphism, ambient glows, and fluid micro-animations. No jarring borders or utilitarian grids.
+- **Auto-Sync Mechanism**: Changes are mapped to a central in-memory state and auto-saved iteratively.
+- **Recovery Key System**: Cryptographically sound emergency fallback to reset forgotten master passwords.
 
-## 🧰 Tech Stack
-- **Frontend**: Next.js (React), Web Crypto API, Vanilla CSS.
-- **Backend**: Node.js, Express, MongoDB Atlas.
+---
 
-## 🚀 Setup Instructions
+## 🏗️ The Architecture 
 
-### 1. Backend Setup
+### The Ultimate "Blind Backend"
+The backend has been aggressively pruned. Mongoose does not map your data. It does not possess a `password` field, a `username` field, or even a `platform` field. 
+
+**The Single Database Document:**
+```json
+{
+  "_id": "ObjectId",
+  "userId": "Derived SHA-256 Hash",
+  "recoveryKeyHash": "Derived SHA-256 Hash",
+  "vault": "AQAAAAAAAAAAAAAAAAAAAAA..." // The entire binary blob
+}
+```
+
+### 🔒 Cryptographic Lifecycle
+1. **PBKDF2 Derivation**: A 256-bit encryption key is squeezed from your master password using 100,000 algorithmic iterations and a 16-byte cryptographically secure random salt.
+2. **AES-GCM Encryption**: The JSON-stringified array of your entire vault is encrypted. A fresh 12-byte IV (Initialization Vector) prevents nonce-reuse attacks.
+3. **Binary Serialization**: The `[Version | Salt | IV | Ciphertext]` sequence is stitched into a single raw `Uint8Array`.
+4. **Base64 Transport**: The array is encoded to Base64, bypassing JSON serialization limits, and thrust safely up to the backend via a single `POST /store` route.
+
+---
+
+## 🚀 Getting Started
+
+To run SecureVault locally, you need two terminal instances.
+
+### 1. Start the Secure Backend (Port 5000)
+Ensure your `.env` is configured with `MONGO_URI`.
 ```bash
 cd backend
 npm install
-# Create a .env file with your specific variables (e.g., MONGODB_URI)
 npm run dev
 ```
 
-### 2. Frontend Setup
+### 2. Start the Frontend (Port 3000)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-The frontend will run on `http://localhost:3000` and the backend on `http://localhost:5000`.
+Visit `http://localhost:3000` to create your initial vault and begin adding credentials. 
 
-## 🗄️ API Endpoints
+*(Note: Data created prior to the binary migration is incompatible with this engine schema).*
 
-- `GET /api/credentials?userId=<hash>` — Get all vault credentials for user
-- `POST /api/credentials` — Store a new AES encrypted credential
-- `GET /api/credentials/:id` — View a specific credential
-- `PUT /api/credentials/:id` — Update/Re-encrypt a credential
-- `DELETE /api/credentials/:id` — Delete a credential
-- `PATCH /api/credentials/:id/track` — Track usage 
+---
 
-## 🔒 Special Project Features 
-- **Auto-Lock**: The vault locks itself automatically after 5 minutes of inactivity.
-- **Panic Lock Button**: A prominent 🔒 Lock Vault button is always present. Clicking it purges the derived encryption keys from the browser's memory and forces a re-login.
-- **Copy-to-Clipboard Memory Cleansing**: Passwords can be copied, securely clearing from memory when no longer needed.
-- **No LocalStorage Persistence**: For maximum security, encryption keys only live in React Context State. A page refresh requires re-authentication by design.
+## 🎨 Design Philosophy: "Aether Crypt"
+The interface ignores traditional security software standards (thick padlocks, heavy borders, utilitarian tables). Data lives as a precious commodity resting inside an atmospheric "Digital Obsidian".
+* **Layering over Lines**: Depth is demonstrated via surface-tier stacking, not 1px borders.
+* **Gradients**: Elements use strict linear-accents of `#c4c0ff` to `#8781ff` for visual weight.
+* **Glassmorphism**: Modals interact cleanly with blurred deep environments. 
+
+---
+
+<div align="center">
+  <p><i>Your master password is never sent to the server. All encryption happens locally in your browser.</i></p>
+</div>
