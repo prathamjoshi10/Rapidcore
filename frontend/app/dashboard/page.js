@@ -7,8 +7,6 @@ import PinModal from '../../components/PinModal';
 import SearchBar from '../../components/SearchBar';
 import VaultList from '../../components/VaultList';
 import { useVault } from '../../context/VaultContext';
-import { decryptData, deriveKey } from '../../lib/crypto';
-import api from '../../lib/api';
 import {
   MAX_PIN_ATTEMPTS,
   clearStoredPin,
@@ -31,10 +29,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function DashboardPage() {
-  const [credentials, setCredentials] = useState([]);
   const [filteredCredentials, setFilteredCredentials] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,7 +46,7 @@ export default function DashboardPage() {
   const [isVerifyingRecovery, setIsVerifyingRecovery] = useState(false);
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
 
-  const { isUnlocked, userId, encryptionKey } = useVault();
+  const { isUnlocked, userId, credentials, deleteCredential, isSaving } = useVault();
   const router = useRouter();
 
   useEffect(() => {
@@ -59,10 +54,21 @@ export default function DashboardPage() {
       router.push('/');
       return;
     }
-
-    if (!userId || !encryptionKey) return;
-    void fetchCredentials();
-  }, [isUnlocked, userId, encryptionKey, router]);
+  }, [isUnlocked, router]);
+  useEffect(() => {
+    if (!searchQuery) {
+      setFilteredCredentials(credentials);
+    } else {
+      const lowerQuery = searchQuery.toLowerCase();
+      setFilteredCredentials(
+        credentials.filter(
+          (c) =>
+            c.platform.toLowerCase().includes(lowerQuery) ||
+            (c.username && c.username.toLowerCase().includes(lowerQuery))
+        )
+      );
+    }
+  }, [credentials, searchQuery]);
 
   useEffect(() => {
     if (!isUnlocked) return;
@@ -78,47 +84,16 @@ export default function DashboardPage() {
     }
   }, [isUnlocked]);
 
-  const fetchCredentials = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get('/retrieve', { params: { userId } });
-      const creds = await Promise.all(
-        ((res.data.vaults || res.data.credentials || [])).map(async (credential) => {
-          if (!credential.encryptedUsername || !credential.usernameIv) {
-            return credential;
-          }
-
-          try {
-            const key = await deriveKey(encryptionKey, credential.salt);
-            const username = await decryptData(credential.encryptedUsername, credential.usernameIv, key);
-            return { ...credential, username };
-          } catch (err) {
-            console.error('Failed to decrypt username:', err);
-            return { ...credential, username: '' };
-          }
-        })
-      );
-
-      setCredentials(creds);
-      setFilteredCredentials(creds);
-    } catch (err) {
-      console.error('Failed to fetch credentials:', err);
-      setError('Failed to load credentials from the server.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const stats = useMemo(() => {
     if (!credentials.length) return null;
 
     const totalPasswords = credentials.length;
-    const totalUsage = credentials.reduce((sum, credential) => sum + (credential.usageCount || 0), 0);
-    const platforms = [...new Set(credentials.map((credential) => credential.platform))].length;
+    const totalUsage = credentials.reduce((sum, c) => sum + (c.usageCount || 0), 0);
+    const platforms = [...new Set(credentials.map((c) => c.platform))].length;
 
-    const lastActivity = credentials.reduce((latest, credential) => {
-      const nextDate = new Date(credential.updatedAt || credential.createdAt);
-      return nextDate > latest ? nextDate : latest;
+    const lastActivity = credentials.reduce((latest, c) => {
+      const d = new Date(c.updatedAt || c.createdAt);
+      return d > latest ? d : latest;
     }, new Date(0));
 
     return { totalPasswords, totalUsage, platforms, lastActivity };
@@ -147,30 +122,13 @@ export default function DashboardPage() {
 
   const handleSearch = (query) => {
     setSearchQuery(query);
-
-    if (!query) {
-      setFilteredCredentials(credentials);
-      return;
-    }
-
-    const lowerQuery = query.toLowerCase();
-    setFilteredCredentials(
-      credentials.filter(
-        (credential) =>
-          credential.platform.toLowerCase().includes(lowerQuery) ||
-          (credential.username && credential.username.toLowerCase().includes(lowerQuery))
-      )
-    );
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this credential?')) return;
 
     try {
-      await api.delete(`/api/credentials/${id}`, { params: { userId } });
-      const updated = credentials.filter((credential) => credential._id !== id);
-      setCredentials(updated);
-      setFilteredCredentials(filteredCredentials.filter((credential) => credential._id !== id));
+      await deleteCredential(id);
     } catch (err) {
       console.error('Delete failed:', err);
       window.alert('Failed to delete credential.');
@@ -206,10 +164,7 @@ export default function DashboardPage() {
     });
 
   const handleClosePinModal = () => {
-    if (pinMode === 'set' && !pinHash) {
-      return;
-    }
-
+    if (pinMode === 'set' && !pinHash) return;
     setPinModalOpen(false);
     setPinError('');
     resolvePendingPin(false);
@@ -269,6 +224,8 @@ export default function DashboardPage() {
     try {
       setIsVerifyingRecovery(true);
       setRecoveryError('');
+
+      const api = (await import('../../lib/api')).default;
       await api.post('/api/vault/verify-recovery', {
         recoveryKey: recoveryKey.trim(),
         userId,
@@ -302,7 +259,9 @@ export default function DashboardPage() {
         </Link>
       </header>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {isSaving && (
+        <div className={styles.savingBanner}>Encrypting & syncing vault…</div>
+      )}
 
       <div className={styles.quickUnlockBanner}>
         <div className={styles.quickUnlockCopy}>
@@ -356,7 +315,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {stats && !isLoading && (
+      {stats && (
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
             <div className={styles.statIcon}>Keys</div>
@@ -420,24 +379,17 @@ export default function DashboardPage() {
 
       {searchQuery && (
         <div className={styles.searchMeta}>
-          Showing {sortedCredentials.length} result{sortedCredentials.length !== 1 ? 's' : ''} for "{searchQuery}"
+          Showing {sortedCredentials.length} result{sortedCredentials.length !== 1 ? 's' : ''} for &ldquo;{searchQuery}&rdquo;
         </div>
       )}
 
-      {isLoading ? (
-        <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Decrypting your vault...</p>
-        </div>
-      ) : (
-        <VaultList
-          credentials={sortedCredentials}
-          onDelete={handleDelete}
-          viewMode={viewMode}
-          requestPinUnlock={requestPinUnlock}
-          pinEnabled={Boolean(pinHash)}
-        />
-      )}
+      <VaultList
+        credentials={sortedCredentials}
+        onDelete={handleDelete}
+        viewMode={viewMode}
+        requestPinUnlock={requestPinUnlock}
+        pinEnabled={Boolean(pinHash)}
+      />
 
       <Link href="/add" className={styles.fabBtn} title="Add Credential">
         +

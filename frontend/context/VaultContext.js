@@ -1,26 +1,25 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateUserId } from '../lib/crypto';
+import { generateUserId, packVault, unpackVault } from '../lib/crypto';
 import api from '../lib/api';
 
 const VaultContext = createContext();
 
 export function VaultProvider({ children }) {
-  const [encryptionKey, setEncryptionKey] = useState(null);
+  const [masterPassword, setMasterPassword] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [credentials, setCredentials] = useState([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
-
-  // Auto-lock timer logic
   useEffect(() => {
     let timeout;
-    
+
     const resetTimer = () => {
       clearTimeout(timeout);
       if (isUnlocked) {
-        // 5 minutes auto-lock
         timeout = setTimeout(() => {
           lockVault();
         }, 5 * 60 * 1000);
@@ -39,55 +38,129 @@ export function VaultProvider({ children }) {
       window.removeEventListener('keypress', resetTimer);
     };
   }, [isUnlocked]);
+  const saveVault = useCallback(async (pwd, uid, creds) => {
+    setIsSaving(true);
+    try {
+      const blob = creds.length > 0 ? await packVault(pwd, creds) : "";
+      await api.post('/store', { userId: uid, vault: blob });
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
+  const unlockVault = async (password) => {
+    const uid = await generateUserId(password);
 
-  const unlockVault = async (masterPassword) => {
-    const currentUserId = await generateUserId(masterPassword);
-
-    const res = await api.get('/api/vault', { params: { userId: currentUserId } });
+    const res = await api.get('/api/vault', { params: { userId: uid } });
     if (!res.data?.exists) {
       throw new Error('Vault account not found');
     }
+    let creds = [];
+    try {
+      const dataRes = await api.get('/retrieve', { params: { userId: uid } });
+      const blob = dataRes.data?.vault || "";
+      if (blob) {
+        creds = await unpackVault(password, blob);
+      }
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        throw err;
+      }
+    }
 
-    setEncryptionKey(masterPassword); // Storing the password in memory to derive per-credential keys
-    setUserId(currentUserId);
+    setMasterPassword(password);
+    setUserId(uid);
+    setCredentials(creds);
     setIsUnlocked(true);
   };
+  const createVaultAccount = async (password) => {
+    const uid = await generateUserId(password);
+    const res = await api.post('/api/vault', { userId: uid });
 
-  const createVaultAccount = async (masterPassword) => {
-    const currentUserId = await generateUserId(masterPassword);
-    const res = await api.post('/api/vault', { userId: currentUserId });
-
-    setEncryptionKey(masterPassword);
-    setUserId(currentUserId);
+    setMasterPassword(password);
+    setUserId(uid);
+    setCredentials([]);
     setIsUnlocked(true);
 
     return res.data?.recoveryKey || '';
   };
-
-  const resetVaultAccount = async (recoveryKey, newMasterPassword) => {
-    const currentUserId = await generateUserId(newMasterPassword);
+  const resetVaultAccount = async (recoveryKey, newPassword) => {
+    const uid = await generateUserId(newPassword);
     const res = await api.post('/api/vault/reset', {
       recoveryKey,
-      newUserId: currentUserId,
+      newUserId: uid,
     });
 
-    setEncryptionKey(newMasterPassword);
-    setUserId(currentUserId);
+    setMasterPassword(newPassword);
+    setUserId(uid);
+    setCredentials([]);
     setIsUnlocked(true);
 
     return res.data?.recoveryKey || '';
   };
-
   const lockVault = () => {
-    setEncryptionKey(null);
+    setMasterPassword(null);
     setUserId(null);
+    setCredentials([]);
     setIsUnlocked(false);
     router.push('/');
   };
 
+  const addCredential = async (cred) => {
+    const newCred = {
+      ...cred,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastUsed: null,
+      usageCount: 0,
+    };
+    const updated = [...credentials, newCred];
+    setCredentials(updated);
+    await saveVault(masterPassword, userId, updated);
+    return newCred;
+  };
+
+  const updateCredential = async (id, changes) => {
+    const updated = credentials.map(c =>
+      c.id === id ? { ...c, ...changes, updatedAt: new Date().toISOString() } : c
+    );
+    setCredentials(updated);
+    await saveVault(masterPassword, userId, updated);
+  };
+
+  const deleteCredential = async (id) => {
+    const updated = credentials.filter(c => c.id !== id);
+    setCredentials(updated);
+    await saveVault(masterPassword, userId, updated);
+  };
+
+  const trackUsage = (id) => {
+    const updated = credentials.map(c =>
+      c.id === id
+        ? { ...c, usageCount: (c.usageCount || 0) + 1, lastUsed: new Date().toISOString() }
+        : c
+    );
+    setCredentials(updated);
+    saveVault(masterPassword, userId, updated).catch(() => {});
+  };
+
   return (
     <VaultContext.Provider
-      value={{ encryptionKey, userId, isUnlocked, unlockVault, createVaultAccount, resetVaultAccount, lockVault }}
+      value={{
+        masterPassword,
+        userId,
+        credentials,
+        isUnlocked,
+        isSaving,
+        unlockVault,
+        createVaultAccount,
+        resetVaultAccount,
+        lockVault,
+        addCredential,
+        updateCredential,
+        deleteCredential,
+        trackUsage,
+      }}
     >
       {children}
     </VaultContext.Provider>

@@ -13,8 +13,6 @@ export default function SearchBar({ onSearch }) {
       timeout = setTimeout(() => func(...args), wait);
     };
   };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     debounce((q) => onSearch(q), 300),
     [onSearch]

@@ -1,3 +1,9 @@
+
+const VAULT_VERSION = 1;
+const SALT_BYTES   = 16;
+const IV_BYTES     = 12;
+const HEADER_BYTES = 1 + SALT_BYTES + IV_BYTES; // 29 bytes
+
 function hexToBytes(hex, label, expectedByteLength) {
   if (!hex || typeof hex !== 'string' || !/^[0-9a-fA-F]+$/.test(hex)) {
     throw new Error(`${label} is missing or contains invalid characters.`);
@@ -15,11 +21,6 @@ function hexToBytes(hex, label, expectedByteLength) {
   return bytes;
 }
 
-export async function generateSalt() {
-  const salt = window.crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 export async function generateUserId(masterPassword) {
   if (!masterPassword || typeof masterPassword !== 'string') {
     throw new Error('Master password is required.');
@@ -31,13 +32,8 @@ export async function generateUserId(masterPassword) {
     .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function deriveKey(masterPassword, saltHex) {
-  if (!masterPassword || typeof masterPassword !== 'string') {
-    throw new Error('Key derivation failed: master password is required.');
-  }
-
+async function deriveKey(masterPassword, salt) {
   const enc = new TextEncoder();
-  const saltBuffer = hexToBytes(saltHex, 'saltHex', 16);
 
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
@@ -50,7 +46,7 @@ export async function deriveKey(masterPassword, saltHex) {
   return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: saltBuffer,
+      salt,
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -61,38 +57,69 @@ export async function deriveKey(masterPassword, saltHex) {
   );
 }
 
-export async function encryptData(plaintext, cryptoKey) {
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+export async function packVault(masterPassword, credentials) {
+  const salt = window.crypto.getRandomValues(new Uint8Array(SALT_BYTES));
+  const iv   = window.crypto.getRandomValues(new Uint8Array(IV_BYTES));
+
+  const cryptoKey = await deriveKey(masterPassword, salt);
+
+  const plaintext = JSON.stringify({ credentials });
   const enc = new TextEncoder();
 
   const ciphertextBuffer = await window.crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
+    { name: 'AES-GCM', iv },
     cryptoKey,
     enc.encode(plaintext)
   );
 
-  const cipherHex = Array.from(new Uint8Array(ciphertextBuffer))
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-  const ivHex = Array.from(iv)
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-
-  return { cipherHex, ivHex };
+  const ciphertext = new Uint8Array(ciphertextBuffer);
+  const packed = new Uint8Array(HEADER_BYTES + ciphertext.length);
+  packed[0] = VAULT_VERSION;
+  packed.set(salt, 1);
+  packed.set(iv, 1 + SALT_BYTES);
+  packed.set(ciphertext, HEADER_BYTES);
+  let binary = '';
+  for (let i = 0; i < packed.length; i++) {
+    binary += String.fromCharCode(packed[i]);
+  }
+  return btoa(binary);
 }
 
-export async function decryptData(cipherHex, ivHex, cryptoKey) {
-  const cipherBuffer = hexToBytes(cipherHex, 'cipherHex');
-  const ivBuffer = hexToBytes(ivHex, 'ivHex', 12);
+export async function unpackVault(masterPassword, base64Blob) {
+  if (!base64Blob || base64Blob.length === 0) {
+    return [];
+  }
+  const binary = atob(base64Blob);
+  const packed = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    packed[i] = binary.charCodeAt(i);
+  }
+
+  if (packed.length < HEADER_BYTES + 1) {
+    throw new Error('Vault data is corrupted or too short.');
+  }
+  const version    = packed[0];
+  const salt       = packed.slice(1, 1 + SALT_BYTES);
+  const iv         = packed.slice(1 + SALT_BYTES, HEADER_BYTES);
+  const ciphertext = packed.slice(HEADER_BYTES);
+
+  if (version !== VAULT_VERSION) {
+    throw new Error(`Unsupported vault version: ${version}`);
+  }
+
+  const cryptoKey = await deriveKey(masterPassword, salt);
 
   try {
     const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: ivBuffer },
+      { name: 'AES-GCM', iv },
       cryptoKey,
-      cipherBuffer
+      ciphertext
     );
 
-    return new TextDecoder().decode(decryptedBuffer);
+    const json = new TextDecoder().decode(decryptedBuffer);
+    const data = JSON.parse(json);
+    return data.credentials || [];
   } catch {
-    console.error('Decryption failed: Incorrect master password or corrupted data.');
-    throw new Error('Decryption failed: Incorrect master password or corrupted data.');
+    throw new Error('Decryption failed: Incorrect master password or corrupted vault.');
   }
 }

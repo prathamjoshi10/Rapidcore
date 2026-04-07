@@ -1,4 +1,3 @@
-// Middleware to validate required fields in the request body
 const validateRequest = (requiredFields) => {
   return (req, res, next) => {
     const missing = requiredFields.filter((field) => !req.body[field]);

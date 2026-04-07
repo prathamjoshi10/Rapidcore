@@ -4,22 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useVault } from '../../../context/VaultContext';
-import { encryptData, decryptData, deriveKey } from '../../../lib/crypto';
-import api from '../../../lib/api';
 import styles from './page.module.css';
 
 export default function CredentialDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { isUnlocked, userId, encryptionKey } = useVault();
+  const { isUnlocked, credentials, updateCredential, deleteCredential, trackUsage } = useVault();
 
-  const [credential, setCredential] = useState(null);
   const [formData, setFormData] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState('');
+
+  const credential = credentials.find(c => c.id === id);
 
   useEffect(() => {
     if (!isUnlocked) {
@@ -27,46 +24,16 @@ export default function CredentialDetailsPage() {
       return;
     }
 
-    if (!userId || !encryptionKey) {
-      return;
-    }
-
-    fetchCredential();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isUnlocked, userId, encryptionKey]);
-
-  const fetchCredential = async () => {
-    try {
-      setIsLoading(true);
-      const res = await api.get(`/retrieve/${id}`, { params: { userId } });
-      const data = res.data.vault || res.data.credential || res.data;
-
-      const cryptoKey = await deriveKey(encryptionKey, data.salt);
-      const decUsername = data.encryptedUsername && data.usernameIv
-        ? await decryptData(data.encryptedUsername, data.usernameIv, cryptoKey)
-        : '';
-      const decPwd = await decryptData(data.encryptedPassword, data.iv, cryptoKey);
-
-      data.username = decUsername;
-      data.password = decPwd || "ERROR: Could not decrypt";
-
-      setCredential(data);
+    if (credential) {
       setFormData({
-        platform: data.platform,
-        platformUrl: data.platformUrl || '',
-        username: data.username || '',
-        password: data.password
+        platform: credential.platform,
+        platformUrl: credential.platformUrl || '',
+        username: credential.username || '',
+        password: credential.password
       });
-
-      // Track usage
-      await api.patch(`/api/credentials/${id}/track`, { userId }).catch(() => {});
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load credential');
-    } finally {
-      setIsLoading(false);
+      trackUsage(id);
     }
-  };
+  }, [id, isUnlocked]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -77,24 +44,13 @@ export default function CredentialDetailsPage() {
     setIsSaving(true);
 
     try {
-      const cryptoKey = await deriveKey(encryptionKey, credential.salt);
-      const { cipherHex: encryptedPassword, ivHex: passwordIv } = await encryptData(formData.password, cryptoKey);
-      const { cipherHex: encryptedUsername, ivHex: usernameIv } = await encryptData(formData.username || '', cryptoKey);
-
-      const payload = {
-        userId,
+      await updateCredential(id, {
         platform: formData.platform,
         platformUrl: formData.platformUrl,
-        username: '',
-        encryptedUsername,
-        usernameIv,
-        encryptedPassword,
-        iv: passwordIv
-      };
+        username: formData.username,
+        password: formData.password,
+      });
 
-      await api.put(`/api/credentials/${id}`, payload);
-      
-      setCredential({ ...credential, ...payload, username: formData.username, password: formData.password });
       setIsEditing(false);
       alert('Updated successfully!');
     } catch (err) {
@@ -107,9 +63,9 @@ export default function CredentialDetailsPage() {
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to completely delete this credential?')) return;
-    
+
     try {
-      await api.delete(`/api/credentials/${id}`, { params: { userId } });
+      await deleteCredential(id);
       router.push('/dashboard');
     } catch (err) {
       alert('Failed to delete');
@@ -117,8 +73,7 @@ export default function CredentialDetailsPage() {
   };
 
   if (!isUnlocked) return null;
-  if (isLoading) return <div className={styles.loading}>Loading credential...</div>;
-  if (error || !credential) return <div className={styles.error}>{error || 'Not found'}</div>;
+  if (!credential) return <div className={styles.error}>Credential not found</div>;
 
   return (
     <div className={styles.detailContainer}>

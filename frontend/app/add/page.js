@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useVault } from '../../context/VaultContext';
-import { encryptData, generateSalt, deriveKey } from '../../lib/crypto';
-import api from '../../lib/api';
 import styles from './page.module.css';
 
 export default function AddCredentialPage() {
@@ -16,7 +14,7 @@ export default function AddCredentialPage() {
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { isUnlocked, userId, encryptionKey } = useVault();
+  const { isUnlocked, addCredential } = useVault();
   const router = useRouter();
 
   useEffect(() => {
@@ -29,14 +27,7 @@ export default function AddCredentialPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const generatePassword = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
-    let pwd = "";
-    for (let i = 0; i < 16; i++) {
-        pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setFormData({ ...formData, password: pwd });
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,30 +35,12 @@ export default function AddCredentialPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. Generate salt for this credential
-      const salt = await generateSalt();
-      
-      // 2. Derive key from master password using this specific salt
-      const cryptoKey = await deriveKey(encryptionKey, salt);
-      
-      // 3. Encrypt password and username
-      const { cipherHex: encryptedPassword, ivHex: passwordIv } = await encryptData(formData.password, cryptoKey);
-      const { cipherHex: encryptedUsername, ivHex: usernameIv } = await encryptData(formData.username || '', cryptoKey);
-      
-      // 4. Send to backend
-      const payload = {
-        userId,
+      await addCredential({
         platform: formData.platform,
         platformUrl: formData.platformUrl,
-        username: '',
-        encryptedPassword,
-        iv: passwordIv,
-        encryptedUsername,
-        usernameIv,
-        salt
-      };
-
-      await api.post('/store', payload);
+        username: formData.username,
+        password: formData.password,
+      });
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to save credential:', err);
@@ -102,18 +75,7 @@ export default function AddCredentialPage() {
             />
           </div>
 
-          <div className={styles.inputGroup}>
-            <label htmlFor="platformUrl">Website URL</label>
-            <input
-              id="platformUrl"
-              name="platformUrl"
-              className="input-field"
-              type="url"
-              placeholder="e.g. https://github.com"
-              value={formData.platformUrl}
-              onChange={handleChange}
-            />
-          </div>
+
 
           <div className={styles.inputGroup}>
             <label htmlFor="username">Username / Email</label>
@@ -130,21 +92,16 @@ export default function AddCredentialPage() {
 
           <div className={styles.inputGroup}>
             <label htmlFor="password">Password*</label>
-            <div className={styles.passwordField}>
-              <input
-                id="password"
-                name="password"
-                className="input-field"
-                type="text"
-                placeholder="Enter or generate password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              <button type="button" onClick={generatePassword} className={`btn ${styles.genBtn}`}>
-                Generate
-              </button>
-            </div>
+            <input
+              id="password"
+              name="password"
+              className="input-field"
+              type="password"
+              placeholder="Enter password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
           </div>
 
           <div className={styles.actions}>
@@ -153,7 +110,7 @@ export default function AddCredentialPage() {
               className={`btn btn-primary ${styles.submitBtn}`}
               disabled={isSubmitting || !formData.platform || !formData.password}
             >
-              {isSubmitting ? 'Encrypting...' : 'Save to Vault'}
+              {isSubmitting ? 'Encrypting & Saving...' : 'Save to Vault'}
             </button>
           </div>
         </form>

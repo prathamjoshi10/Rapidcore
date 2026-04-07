@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { decryptData, deriveKey } from '../lib/crypto';
-import { useVault } from '../context/VaultContext';
 import styles from './CredentialCard.module.css';
 
 const AUTO_HIDE_MS = 45 * 1000;
@@ -16,11 +14,8 @@ export default function CredentialCard({
   viewMode = 'grid',
 }) {
   const [showPassword, setShowPassword] = useState(false);
-  const [decryptedPassword, setDecryptedPassword] = useState('');
-  const [isDecrypting, setIsDecrypting] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
   const [unlockNotice, setUnlockNotice] = useState('');
-  const { encryptionKey } = useVault();
   const hideTimerRef = useRef(null);
 
   const clearHideTimer = () => {
@@ -34,7 +29,6 @@ export default function CredentialCard({
     clearHideTimer();
     hideTimerRef.current = window.setTimeout(() => {
       setShowPassword(false);
-      setDecryptedPassword('');
       setUnlockNotice('');
     }, AUTO_HIDE_MS);
   };
@@ -45,7 +39,6 @@ export default function CredentialCard({
     if (showPassword) {
       clearHideTimer();
       setShowPassword(false);
-      setDecryptedPassword('');
       setUnlockNotice('');
       return;
     }
@@ -55,42 +48,25 @@ export default function CredentialCard({
       if (!isAllowed) return;
     }
 
-    setIsDecrypting(true);
-    try {
-      const key = await deriveKey(encryptionKey, credential.salt);
-      const plaintext = await decryptData(credential.encryptedPassword, credential.iv, key);
-      setDecryptedPassword(plaintext);
-      setShowPassword(true);
-      setUnlockNotice('Quick unlocked. Password hides again in 45 seconds.');
-      scheduleAutoHide();
-    } catch (err) {
-      console.error(err);
-      setDecryptedPassword('ERROR');
-    } finally {
-      setIsDecrypting(false);
-    }
+    setShowPassword(true);
+    setUnlockNotice('Password hides again in 45 seconds.');
+    scheduleAutoHide();
   };
 
   const copyToClipboard = async () => {
     try {
-      let password = decryptedPassword;
-
-      if (!showPassword) {
-        if (pinEnabled && requestPinUnlock) {
-          const isAllowed = await requestPinUnlock();
-          if (!isAllowed) return;
-        }
-
-        const key = await deriveKey(encryptionKey, credential.salt);
-        password = await decryptData(credential.encryptedPassword, credential.iv, key);
-        setDecryptedPassword(password);
-        setShowPassword(true);
-        setUnlockNotice('Quick unlocked. Password hides again in 45 seconds.');
-        scheduleAutoHide();
+      if (!showPassword && pinEnabled && requestPinUnlock) {
+        const isAllowed = await requestPinUnlock();
+        if (!isAllowed) return;
       }
 
-      await navigator.clipboard.writeText(password);
+      await navigator.clipboard.writeText(credential.password);
       setCopyStatus('Copied!');
+      if (!showPassword) {
+        setShowPassword(true);
+        setUnlockNotice('Password hides again in 45 seconds.');
+        scheduleAutoHide();
+      }
       window.setTimeout(() => setCopyStatus(''), 2000);
     } catch (err) {
       console.error(err);
@@ -104,10 +80,10 @@ export default function CredentialCard({
       <div className={styles.header}>
         <h3 className={styles.platform}>{credential.platform}</h3>
         <div className={styles.actions}>
-          <Link href={`/credential/${credential._id}`} className={styles.iconBtn} title="View/Edit">
+          <Link href={`/credential/${credential.id}`} className={styles.iconBtn} title="View/Edit">
             Edit
           </Link>
-          <button type="button" onClick={() => onDelete(credential._id)} className={styles.iconBtn} title="Delete">
+          <button type="button" onClick={() => onDelete(credential.id)} className={styles.iconBtn} title="Delete">
             Delete
           </button>
         </div>
@@ -120,7 +96,7 @@ export default function CredentialCard({
         <div className={styles.passwordField}>
           <input
             type={showPassword ? 'text' : 'password'}
-            value={showPassword ? decryptedPassword : '************'}
+            value={showPassword ? credential.password : '************'}
             readOnly
             className={styles.passwordInput}
           />
@@ -128,9 +104,8 @@ export default function CredentialCard({
             type="button"
             onClick={handleTogglePassword}
             className={styles.toggleBtn}
-            disabled={isDecrypting}
           >
-            {isDecrypting ? '...' : showPassword ? 'Hide' : 'Show'}
+            {showPassword ? 'Hide' : 'Show'}
           </button>
         </div>
         {unlockNotice && <p className={styles.unlockNotice}>{unlockNotice}</p>}
