@@ -1,5 +1,7 @@
-{"timestamp":"00:00:01.023","source":"Server","level":"LOG","message":""}
-{"timestamp":"00:00:01.668","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:00:01.686","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:00:04.655","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
-{"timestamp":"00:24:04.578","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:00:01.496","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:05:26.045","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:05:27.057","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:09:04.815","source":"Browser","level":"ERROR","message":"Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `VaultList`. "}
+{"timestamp":"00:09:04.859","source":"Server","level":"ERROR","message":"[browser] \"Each child in a list should have a unique \\\"key\\\" prop.\\n\\nCheck the render method of `VaultList`. See https://react.dev/link/warning-keys for more information.\" \"\""}
+{"timestamp":"00:09:04.860","source":"Browser","level":"ERROR","message":"Each child in a list should have a unique \"key\" prop.\n\nCheck the render method of `VaultList`. See https://react.dev/link/warning-keys for more information. \"\""}
+{"timestamp":"00:17:57.187","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
